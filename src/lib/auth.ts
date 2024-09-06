@@ -6,6 +6,7 @@ import { db } from "./db";
 function getGoogleCredentials() {
     const clientId = process.env.GOOGLE_CLIENT_ID
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+    
 
     if(!clientId || clientId.length === 0) {
         throw new Error("Missing GOOGLE_CLIENT_ID")
@@ -36,10 +37,16 @@ export const authOptions: NextAuthOptions  = {
     ],
     callbacks: {
         async jwt ({token, user}) {
+            
+
+            if(user) {
+                token.id = user.id
+            }
+
             const dbUser = (await db.get(`user: ${token.id}`)) as User | null
 
             if(!dbUser){
-                token.id = user!.id
+                
                 return token;
             }
 
@@ -52,13 +59,13 @@ export const authOptions: NextAuthOptions  = {
             }
         },
         async session({session, token}) {
-            if(token){
-                session.user.id = token.id
-                session.user.name = token.name
-                session.user.email = token.email
-                session.user.image = token.picture
+            if(token && session.user){
+                session.user.id = token.id 
+                session.user.name = token.name 
+                session.user.email = token.email 
+                session.user.image = token.picture 
                 
-            } 
+            }
             return session;
         },
         redirect() {
