@@ -25,16 +25,16 @@ const AddFriendButton:FC<AddFriendButtonProps> = ({}) => {
 
     const addFriend = async (email: string) => {
         try {
-            const validatedEmail = addFriendValidator.safeParse({email});
 
             await axios.post('/api/friend/add', {
-                email: validatedEmail
+                email
             })
             setShowSuccess(true)
 
         } catch (error) {
             if(error instanceof z.ZodError){
                 setError('email', {message: error.message})
+                return;
             }
 
             setError('email', {message: "Something went wrong"})
