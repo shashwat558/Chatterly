@@ -18,7 +18,7 @@ const page = async({}) =>  {
 
 
   return (
-    <pre>{JSON.stringify(session)}</pre>
+    <div className='font-semibold text-4xl'>Add a friend</div>
   )
 }
 
