@@ -15,7 +15,15 @@ export async function POST(req: Request) {
             return new Response("Unauthorized", {status: 401})
         }
 
-        const isAlreadyFriend = await fetchRedis('sismember', `user:${idToAdd}:incoming_friend_requests`, session.user.id)
+        const isAlreadyFriend = await fetchRedis('sismember', `user:${session.user.id}:friends`, idToAdd)
+        if(isAlreadyFriend){
+            return new Response('Already Friends', {status: 401})
+        }
+
+        const hasFriendRequest = await fetchRedis('sismember', `user:${session.user.id}:incoming_friend_requests`, idToAdd)
+        console.log(hasFriendRequest)
+
+
     } catch (error) {
                 
     }
