@@ -2,7 +2,7 @@
 
 import React, { FC, useState } from 'react'
 import Button from './ui/Button'
-import { addFriendValidator } from '@/lib/add-friend'
+import { addFriendValidator } from '@/lib/validations/add-friend'
 import { z } from 'zod'
 import axios from 'axios'
 

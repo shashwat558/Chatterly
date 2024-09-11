@@ -1,5 +1,5 @@
 import { fetchRedis } from "@/helpers/redis";
-import { addFriendValidator } from "@/lib/add-friend";
+import { addFriendValidator } from "@/lib/validations/add-friend";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 
