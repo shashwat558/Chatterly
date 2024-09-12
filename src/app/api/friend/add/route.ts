@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 
 import { getServerSession } from "next-auth";
 import { z, ZodError } from "zod";
+import { pusherServer } from "@/lib/pusher";
+import { toPusherKey } from "@/lib/utils";
 
 export async function POST(req: Request) {
     try {
@@ -64,6 +66,14 @@ export async function POST(req: Request) {
         if (isAlreadyFriend) {
             return new Response('Already a friend', { status: 400 });
         }
+
+        pusherServer.trigger(
+            toPusherKey(`user:${idToAdd}:incoming_friend-requests`), 'incoming_friend_requests',
+            {
+                senderId: session.user.id,
+                senderEmail: session.user.email
+            }
+        )
 
         // Add incoming friend request
         await fetchRedis('sadd', `user:${idToAdd}:incoming_friend_requests`, session.user.id);
