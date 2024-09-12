@@ -30,10 +30,12 @@ const getChatMessages = async (chatId: string)=>{
 
     const messages = messageArrayValidator.parse(reversedDBMesages)
 
+
     return messages
 
 
   } catch (error) {
+    console.log(error)
     notFound()
     
   }
@@ -58,7 +60,7 @@ const page: FC<PageProps> = async ({params}: PageProps) => {
 
   const chatPartenerId = user.id === userId1 ? userId2: userId1
   const chatPartener = (await db.get(`user:${chatPartenerId}`)) as User
-  const initialMessages = await getChatMessages(chatPartenerId)
+  const initialMessages = await getChatMessages(chatId)
 
 
 

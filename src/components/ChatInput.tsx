@@ -25,6 +25,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId}) => {
             
         } catch (error) {
             toast.error("Something went wrong. Please try again later")
+            console.log(error)
             
         } finally {
             setLoading(false)
@@ -58,7 +59,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId}) => {
             <div className='absolute right-0 bottom-0 flex justify-between py-2 pl-3 pr-2'>
                 <div className='flex-shrink-0'>
 
-                    <Button isLoading={loading} onClick={sendMessage}>Post</Button>
+                    <Button isLoading={loading} onClick={sendMessage} type='submit'>Post</Button>
                 </div>
             </div>
         </div>
