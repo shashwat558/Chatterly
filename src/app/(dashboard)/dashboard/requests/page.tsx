@@ -16,7 +16,9 @@ const page: FC = async () => {
     const incomingFriendRequests = await Promise.all(
         incomingSenderIds.map(async (senderId) => {
             const sender = await fetchRedis('get', `user:${senderId}`) as string
+            console.log(sender + "sdsfjlfj")
             const senderParsed = JSON.parse(sender) as User
+            
             return {
                 senderId,
                 senderEmail : senderParsed.email

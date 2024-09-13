@@ -44,7 +44,7 @@ export async function POST(req:Request) {
     const message = messageValidator.parse(messageData);
 
 
-    pusherServer.trigger(toPusherKey(`chat:${chatId}`, ), `incoming-message`, message)
+    await pusherServer.trigger(toPusherKey(`chat:${chatId}`, ), `incoming-message`, message)
 
     //now send the message
     await db.zadd(`chat:${chatId}:messages`, {

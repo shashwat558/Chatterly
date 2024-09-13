@@ -16,37 +16,44 @@ const FriendRequest:FC<FreindRequetsProps> = ({
     incomingFriendRequests, sessionId
 }) => {
     const router = useRouter()
-    const [friendRequests, setFriendRequest] = useState<IncomingFriendRequest[]>(
+    const [friendRequests, setFriendRequests] = useState<IncomingFriendRequest[]>(
         incomingFriendRequests
     )
 
     useEffect(() => {
-      pusherClient.subscribe(toPusherKey(`user:${sessionId}:incoming_friend_requests`))
-
-      const friendRequestHandler = ({senderId, senderEmail}: IncomingFriendRequest) => {
-        setFriendRequest((prev) => [...prev, {senderId, senderEmail}])
+      pusherClient.subscribe(
+        toPusherKey(`user:${sessionId}:incoming_friend_requests`)
+      )
+      console.log("listening to ", `user:${sessionId}:incoming_friend_requests`)
+  
+      const friendRequestHandler = ({
+        senderId,
+        senderEmail,
+      }: IncomingFriendRequest) => {
+        console.log("function got called")
+        setFriendRequests((prev) => [...prev, { senderId, senderEmail }])
       }
-
+  
       pusherClient.bind('incoming_friend_requests', friendRequestHandler)
-
+  
       return () => {
-        pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:incoming_friend_requests`))
+        pusherClient.unsubscribe(
+          toPusherKey(`user:${sessionId}:incoming_friend_requests`)
+        )
         pusherClient.unbind('incoming_friend_requests', friendRequestHandler)
-
       }
-
-    },[sessionId])
+    }, [sessionId])
 
     const acceptFriend = async (senderId: string) => {
         await axios.post('/api/friend/accept', {id: senderId})
 
-        setFriendRequest((prev) => prev.filter((request) =>request.senderId !==  senderId))
+        setFriendRequests((prev) => prev.filter((request) =>request.senderId !==  senderId))
         router.refresh();
     }
     const denyFriend = async (senderId: string) => {
         await axios.post('/api/friend/deny', {id: senderId})
 
-        setFriendRequest((prev) => prev.filter((request) =>request.senderId !==  senderId))
+        setFriendRequests((prev) => prev.filter((request) =>request.senderId !==  senderId))
         router.refresh();
     }
     

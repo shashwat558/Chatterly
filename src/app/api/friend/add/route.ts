@@ -67,13 +67,14 @@ export async function POST(req: Request) {
             return new Response('Already a friend', { status: 400 });
         }
 
-        pusherServer.trigger(
-            toPusherKey(`user:${idToAdd}:incoming_friend-requests`), 'incoming_friend_requests',
+        await pusherServer.trigger(
+            toPusherKey(`user:${idToAdd}:incoming_friend_requests`),
+            'incoming_friend_requests',
             {
-                senderId: session.user.id,
-                senderEmail: session.user.email
+              senderId: session.user.id,
+              senderEmail: session.user.email,
             }
-        )
+          )
 
         // Add incoming friend request
         await fetchRedis('sadd', `user:${idToAdd}:incoming_friend_requests`, session.user.id);
