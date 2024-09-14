@@ -39,7 +39,7 @@ const Messages:FC<MessagesProps> = ({
 
       }
 
-    },[sessionId])
+    },[chatId])
 
     const scrollDownRef = useRef<HTMLDivElement | null>(null)
 

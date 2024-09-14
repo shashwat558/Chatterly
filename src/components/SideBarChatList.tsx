@@ -6,6 +6,7 @@ import { chatHrefConstructor, toPusherKey } from '@/lib/utils';
 import { usePathname, useRouter } from 'next/navigation';
 import React, { FC, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import UnseenChatToast from './UnseenChatToast';
 
 interface SideBarChatListProps{
     friends: User[]
@@ -15,6 +16,7 @@ interface SideBarChatListProps{
 interface ExtendMessage extends Message{
     senderId: string
     senderImage: string
+    senderName: string
 }
 
 const SideBarChatList: FC<SideBarChatListProps> = ({friends, sessionId}) => {
@@ -35,8 +37,10 @@ const SideBarChatList: FC<SideBarChatListProps> = ({friends, sessionId}) => {
             if(!shoudlNotify) return
 
             toast.custom((t) => (
-                
+                <UnseenChatToast t={t} sessionId={sessionId} senderId={message.senderId} senderName={message.senderName} senderImg={message.senderImage} senderMessage={message.text} />
             ))
+
+            setUnseenMessages((prev) => [...prev, message])
         }
 
         pusherClient.bind('new_message', chatHandler)
@@ -48,7 +52,7 @@ const SideBarChatList: FC<SideBarChatListProps> = ({friends, sessionId}) => {
 
         }
 
-    })
+    },[sessionId, pathname, router])
 
     useEffect(() => {
         if(pathname?.includes('chat')){
@@ -61,7 +65,7 @@ const SideBarChatList: FC<SideBarChatListProps> = ({friends, sessionId}) => {
     <ul role='list' className='max-h-[25rem] overflow-auto -mx-2 space-y-2'>
         {friends.sort().map((friend) => {
             const unseenMessagesCount = unseenMessages.filter((unseenMsg) => {
-                return unseenMsg.senderId = friend.id
+                return unseenMsg.senderId === friend.id
             }).length
             return <li key={friend.id}>
                 <a
