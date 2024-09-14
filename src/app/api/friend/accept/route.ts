@@ -30,7 +30,7 @@ export async function POST(req: Request) {
             return new Response("No friend request", {status: 400})
         }
 
-        pusherServer.trigger(toPusherKey(`user:${idToAdd}:friends`), 'new_friend',{})
+        await pusherServer.trigger(toPusherKey(`user:${idToAdd}:friends`), 'new_friend',{})
 
         await db.sadd(`user:${session.user.id}:friends`, idToAdd)
 
