@@ -11,13 +11,22 @@ interface Chat {
     message: Message[]
 }
 
+interface ReplyTo {
+    id: string
+    senderId: string
+    text: string
+    senderName?: string
+}
+
 interface Message {
     id: string
     senderId: string
     recieverId: string
     text: string
-    timestamp : number
+    timestamp: number
     reactions?: Record<string, string[]>
+    status?: 'sending' | 'sent' | 'delivered' | 'seen'
+    replyTo?: ReplyTo
 }
 
 

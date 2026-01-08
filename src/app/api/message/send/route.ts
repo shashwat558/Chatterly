@@ -4,14 +4,14 @@ import { db } from "@/lib/db";
 import { getServerSession } from "next-auth";
 
 import {nanoid} from 'nanoid';
-import { Message, messageArrayValidator, messageValidator } from "@/lib/validations/message";
+import { Message, messageArrayValidator, messageValidator, ReplyTo } from "@/lib/validations/message";
 import { z } from "zod";
 import { pusherServer } from "@/lib/pusher";
 import { toPusherKey } from "@/lib/utils";
 export async function POST(req:Request) {
    try {
        
-    const {text, chatId}: {text: string, chatId: string} = await req.json();
+    const {text, chatId, messageId, timestamp: clientTimestamp, replyTo}: {text: string, chatId: string, messageId?: string, timestamp?: number, replyTo?: ReplyTo} = await req.json();
     const session = await getServerSession(authOptions);
 
     if(!session) return new Response('Unauthorized', {status: 401})
@@ -32,13 +32,15 @@ export async function POST(req:Request) {
     const rawSender = await fetchRedis('get', `user:${session.user.id}`) 
     const sender = JSON.parse(rawSender) as User;
 
-    const timestamp = Date.now()
+    const timestamp = clientTimestamp || Date.now()
 
     const messageData: Message = {
-        id: nanoid(),
+        id: messageId || nanoid(),
         senderId: session.user.id,
         text,
-        timestamp
+        timestamp,
+        status: 'sent',
+        replyTo: replyTo || undefined
     }
 
     const message = messageValidator.parse(messageData);

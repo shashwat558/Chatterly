@@ -1,6 +1,6 @@
-import ChatInput from '@/components/ChatInput';
-import Messages from '@/components/Messages';
+import ChatContainer from '@/components/ChatContainer';
 import { fetchRedis } from '@/helpers/redis';
+import { getFriendsByUserId } from '@/helpers/get-friends-by-user-id';
 import { authOptions } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { messageArrayValidator } from '@/lib/validations/message';
@@ -61,6 +61,7 @@ const page: FC<PageProps> = async ({params}: PageProps) => {
   const chatPartenerId = user.id === userId1 ? userId2: userId1
   const chatPartener = (await db.get(`user:${chatPartenerId}`)) as User
   const initialMessages = await getChatMessages(chatId)
+  const friends = await getFriendsByUserId(user.id)
 
 
 
@@ -106,8 +107,14 @@ const page: FC<PageProps> = async ({params}: PageProps) => {
           </div>
       </div>
 
-      <Messages chatId={chatId} initialMessages={initialMessages} sessionId={user.id} sessionImg={session.user.image} chatPartner={chatPartener} />
-      <ChatInput chartPartener={chatPartener} chatId={chatId} />
+      <ChatContainer 
+        chatId={chatId} 
+        initialMessages={initialMessages} 
+        sessionId={user.id} 
+        sessionImg={session.user.image} 
+        chatPartner={chatPartener}
+        friends={friends}
+      />
     </div>
   )
 }
