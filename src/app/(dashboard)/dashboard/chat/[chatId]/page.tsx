@@ -68,8 +68,7 @@ const page: FC<PageProps> = async ({params}: PageProps) => {
   return (
     <div className='flex-1 justify-between flex flex-col h-full max-h-screen relative'>
       
-      {/* Background Image with Fade */}
-      <div className='absolute inset-0 z-0 overflow-hidden pointer-events-none' style={{ 
+     <div className='absolute inset-0 z-0 overflow-hidden pointer-events-none' style={{ 
           maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)', 
           WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)' 
         }}>
@@ -82,7 +81,6 @@ const page: FC<PageProps> = async ({params}: PageProps) => {
           />
       </div>
 
-      {/* Floating Header */}
       <div className='absolute top-4 left-4 right-4 z-10'>
           <div className='flex sm:items-center justify-between py-3 px-6 glass-panel rounded-2xl'>
             <div className='relative flex items-center gap-4'>

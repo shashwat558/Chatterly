@@ -5,8 +5,6 @@ import React, { FC } from 'react'
 const page : FC = () => {
   return ( 
   <main className='relative min-h-full'>
-      
-    {/* Full Page Background Image with Fade */}
     <div className="absolute inset-0 -z-10 overflow-hidden" style={{ 
       maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%)', 
       WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%)' 
@@ -19,8 +17,6 @@ const page : FC = () => {
         priority
       />
     </div>
-
-    {/* Content */}
     <div className='relative z-10 pt-20 pb-12 px-8 max-w-2xl mx-auto'>
       <div className='glass-panel p-10 rounded-[40px] text-center shadow-xl'>
            <h1 className='font-bold text-5xl mb-6 bg-gradient-to-r from-sky-600 to-indigo-600 bg-clip-text text-transparent'>Add a Friend</h1>

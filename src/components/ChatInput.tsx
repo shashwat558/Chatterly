@@ -1,7 +1,7 @@
 "use client"
 
 import { SendHorizontal, X, Reply } from 'lucide-react';
-import React, { FC, useRef, useState, useEffect } from 'react';
+import React, { FC, useRef, useState, useEffect, useCallback } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import Button from './ui/Button';
 import axios from 'axios';
@@ -23,7 +23,57 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
 
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const [sending, setSending] = useState<boolean>(false)
-    const  [input, setInput] = useState<string>("");
+    const [input, setInput] = useState<string>("");
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const isTypingRef = useRef(false)
+
+    // Send typing indicator
+    const sendTypingIndicator = useCallback(async (isTyping: boolean) => {
+        if (isTypingRef.current === isTyping) return // Avoid duplicate calls
+        isTypingRef.current = isTyping
+        
+        try {
+            await axios.post('/api/message/typing', { chatId, isTyping })
+        } catch (error) {
+            console.error('Failed to send typing indicator', error)
+        }
+    }, [chatId])
+
+    // Handle input change with typing indicator
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setInput(e.target.value)
+        
+        // Send typing: true
+        if (e.target.value.trim()) {
+            sendTypingIndicator(true)
+            
+            // Clear existing timeout
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+            }
+            
+            // Set timeout to stop typing after 2 seconds of inactivity
+            typingTimeoutRef.current = setTimeout(() => {
+                sendTypingIndicator(false)
+            }, 2000)
+        } else {
+            // Input is empty, stop typing
+            sendTypingIndicator(false)
+        }
+    }
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current)
+            }
+            // Send stop typing on unmount
+            if (isTypingRef.current) {
+                axios.post('/api/message/typing', { chatId, isTyping: false }).catch(() => {})
+            }
+        }
+    }, [chatId])
 
     // Focus textarea when replying
     useEffect(() => {
@@ -62,6 +112,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         const messageText = input
         setInput("");
+        sendTypingIndicator(false) // Stop typing when message sent
         onCancelReply?.() // Clear reply state
         textareaRef.current?.focus()
         
@@ -121,7 +172,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             }}
             rows={1}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             placeholder={replyingTo ? 'Type your reply...' : `Message ${chartPartener.name.split(' ')[0]}...`}
             className='block w-full resize-none border-0 bg-transparent text-slate-800 placeholder:text-slate-400 focus:ring-0 py-3 px-4 text-sm sm:leading-6 max-h-32 overflow-y-auto scrollbar-none'
             />

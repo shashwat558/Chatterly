@@ -12,7 +12,6 @@ export async function POST(req: Request) {
 
     const userId = session.user.id
 
-    // Check if already bookmarked
     const existingBookmarks = await db.zrange(`user:${userId}:bookmarks`, 0, -1) as any[]
     const isBookmarked = existingBookmarks.some((b: any) => {
       const bookmark = typeof b === 'string' ? JSON.parse(b) : b
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
     })
 
     if (isBookmarked) {
-      // Remove bookmark
+
       const bookmarkToRemove = existingBookmarks.find((b: any) => {
         const bookmark = typeof b === 'string' ? JSON.parse(b) : b
         return bookmark.messageId === messageId
@@ -33,7 +32,6 @@ export async function POST(req: Request) {
         headers: { 'Content-Type': 'application/json' }
       })
     } else {
-      // Add bookmark
       const bookmark = {
         messageId,
         chatId,

@@ -16,11 +16,10 @@ export async function POST(req: Request) {
 
         const senderId = session.user.id;
 
-        // Get sender info
         const rawSender = await fetchRedis('get', `user:${senderId}`);
         const sender = JSON.parse(rawSender) as User;
 
-        // Verify all targets are friends
+
         const friendList = await fetchRedis('smembers', `user:${senderId}:friends`) as string[];
         
         const results = await Promise.all(
@@ -28,22 +27,19 @@ export async function POST(req: Request) {
                 if (!friendList.includes(friendId)) {
                     return { friendId, success: false, error: 'Not a friend' };
                 }
-
-                // Create chat ID (sorted to be consistent)
                 const chatId = [senderId, friendId].sort().join('--');
 
                 const timestamp = Date.now();
                 const messageData: Message = {
                     id: nanoid(),
                     senderId,
-                    text: `↪️ ${text}`, // Add forward indicator
+                    text: `↪️ ${text}`,
                     timestamp,
                     status: 'sent'
                 };
 
                 const message = messageValidator.parse(messageData);
 
-                // Trigger Pusher events
                 await pusherServer.trigger(toPusherKey(`chat:${chatId}`), 'incoming-message', message);
                 await pusherServer.trigger(toPusherKey(`user:${friendId}:chats`), 'new_message', {
                     ...message,
@@ -51,7 +47,6 @@ export async function POST(req: Request) {
                     senderName: sender.name
                 });
 
-                // Store in Redis
                 await db.zadd(`chat:${chatId}:messages`, {
                     score: timestamp,
                     member: JSON.stringify(message)

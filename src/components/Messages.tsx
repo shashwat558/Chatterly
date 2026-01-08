@@ -1,13 +1,24 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { cn, toPusherKey } from '@/lib/utils'
 import { Message } from '@/lib/validations/message'
 import React, { FC, useEffect, useRef, useState } from 'react'
 import { format, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns';
 import Image from 'next/image';
-import { Bookmark, Smile, Check, CheckCheck, Clock, Forward, X, Reply } from 'lucide-react';
+import { Bookmark, Smile, Check, CheckCheck, Clock, Forward, X, Reply, MessageCircleOff, HelpCircle, Clock4 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { pusherClient } from '@/lib/pusher';
+
+// Silence status types
+type SilenceStatus = 'no_reply_needed' | 'waiting_for_info' | 'will_reply_later'
+type SilenceData = { status: SilenceStatus; expiresAt: number; userName?: string }
+
+const SILENCE_OPTIONS: { value: SilenceStatus; label: string; icon: React.ReactNode; color: string }[] = [
+  { value: 'no_reply_needed', label: 'No reply needed', icon: <MessageCircleOff className='w-4 h-4' />, color: 'text-emerald-500 bg-emerald-50' },
+  { value: 'waiting_for_info', label: 'Waiting on more info', icon: <HelpCircle className='w-4 h-4' />, color: 'text-amber-500 bg-amber-50' },
+  { value: 'will_reply_later', label: 'Will reply later', icon: <Clock4 className='w-4 h-4' />, color: 'text-blue-500 bg-blue-50' },
+]
 
 interface MessagesProps {
     initialMessages: Message[]
@@ -77,6 +88,8 @@ const Messages:FC<MessagesProps> = ({
      const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null)
      const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set())
      const [isForwarding, setIsForwarding] = useState(false)
+     const [silenceStatuses, setSilenceStatuses] = useState<Record<string, SilenceData>>({})
+     const [activeSilencePopover, setActiveSilencePopover] = useState<string | null>(null)
 
      // Update messages when initialMessages changes (for optimistic updates from parent)
      useEffect(() => {
@@ -96,6 +109,91 @@ const Messages:FC<MessagesProps> = ({
        }
        fetchBookmarks()
      }, [])
+
+     // Fetch silence statuses for partner's messages
+     useEffect(() => {
+       const fetchSilenceStatuses = async () => {
+         // Only fetch silence statuses for messages I sent (partner may have silenced them)
+         const myMessageIds = messages
+           .filter(msg => msg.senderId === sessionId)
+           .map(msg => msg.id)
+         
+         if (myMessageIds.length === 0) return
+
+         try {
+           const res = await axios.get('/api/message/silence', {
+             params: {
+               chatId,
+               messageIds: myMessageIds.join(',')
+             }
+           })
+           const statuses = res.data as Record<string, SilenceData | null>
+           
+           // Filter out null values and set
+           const validStatuses: Record<string, SilenceData> = {}
+           Object.entries(statuses).forEach(([msgId, data]) => {
+             if (data) {
+               validStatuses[msgId] = { ...data, userName: chatPartner.name }
+             }
+           })
+           setSilenceStatuses(validStatuses)
+         } catch (error) {
+           console.error('Failed to fetch silence statuses', error)
+         }
+       }
+       fetchSilenceStatuses()
+       
+       // Set up interval to clear expired silence statuses
+       const interval = setInterval(() => {
+         setSilenceStatuses(prev => {
+           const now = Date.now()
+           const updated: Record<string, SilenceData> = {}
+           Object.entries(prev).forEach(([msgId, data]) => {
+             if (data.expiresAt > now) {
+               updated[msgId] = data
+             }
+           })
+           return updated
+         })
+       }, 60000) // Check every minute
+       
+       return () => clearInterval(interval)
+     }, [messages, chatId, sessionId, chatPartner.name])
+
+     // Subscribe to real-time silence status updates
+     useEffect(() => {
+       const silenceHandler = (data: { messageId: string; userId: string; userName: string; status: SilenceStatus; expiresAt: number }) => {
+         // Only update if the silence is from the chat partner (they silenced our message)
+         if (data.userId === chatPartner.id) {
+           setSilenceStatuses(prev => ({
+             ...prev,
+             [data.messageId]: {
+               status: data.status,
+               expiresAt: data.expiresAt,
+               userName: data.userName
+             }
+           }))
+         }
+       }
+
+       const silenceClearedHandler = (data: { messageId: string; userId: string }) => {
+         if (data.userId === chatPartner.id) {
+           setSilenceStatuses(prev => {
+             const updated = { ...prev }
+             delete updated[data.messageId]
+             return updated
+           })
+         }
+       }
+
+       pusherClient.bind('silence-status', silenceHandler)
+       pusherClient.bind('silence-cleared', silenceClearedHandler)
+
+       return () => {
+         pusherClient.unbind('silence-status', silenceHandler)
+         pusherClient.unbind('silence-cleared', silenceClearedHandler)
+       }
+     }, [chatPartner.id])
 
     // Mark messages as seen when viewing
     useEffect(() => {
@@ -261,6 +359,71 @@ const Messages:FC<MessagesProps> = ({
         }
     }
 
+    const setSilenceStatus = async (message: Message, status: SilenceStatus) => {
+        setActiveSilencePopover(null)
+        
+        // Optimistic update
+        setSilenceStatuses(prev => ({
+          ...prev,
+          [message.id]: {
+            status,
+            expiresAt: Date.now() + (6 * 60 * 60 * 1000), // 6 hours
+            userName: chatPartner.name
+          }
+        }))
+
+        try {
+            await axios.post('/api/message/silence', {
+                chatId,
+                messageId: message.id,
+                status
+            })
+            
+            const statusLabel = SILENCE_OPTIONS.find(o => o.value === status)?.label
+            toast.success(`Status set: ${statusLabel}`, {
+              icon: '🤫',
+              duration: 2000
+            })
+        } catch (error) {
+            console.error("Failed to set silence status", error)
+            toast.error("Failed to set status")
+            // Revert
+            setSilenceStatuses(prev => {
+              const updated = { ...prev }
+              delete updated[message.id]
+              return updated
+            })
+        }
+    }
+
+    const clearSilenceStatus = async (messageId: string) => {
+        const prevStatus = silenceStatuses[messageId]
+        
+        // Optimistic update
+        setSilenceStatuses(prev => {
+          const updated = { ...prev }
+          delete updated[messageId]
+          return updated
+        })
+
+        try {
+            await axios({
+              method: 'delete',
+              url: '/api/message/silence',
+              data: { messageId, chatId }
+            })
+        } catch (error) {
+            console.error("Failed to clear silence status", error)
+            // Revert
+            if (prevStatus) {
+              setSilenceStatuses(prev => ({
+                ...prev,
+                [messageId]: prevStatus
+              }))
+            }
+        }
+    }
+
   return (
     <div id='messages' className='flex h-full flex-1 flex-col-reverse gap-3 p-8 pt-24 overflow-y-auto scrollbar-thumb-rounded scrollbar-track-transparent scrollbar-w-2 scrolling-touch'>
         <div ref={scrollDownRef}/>
@@ -359,8 +522,22 @@ const Messages:FC<MessagesProps> = ({
                                 </div>
                             )}
 
+                            {/* Silence Status Display - Shows when partner has set a silence status on YOUR message */}
+                            {isCurrentUser && silenceStatuses[message.id] && (
+                              <div className={cn(
+                                'flex items-center gap-1.5 mt-1.5 px-3 py-1.5 rounded-full text-xs font-medium animate-fade-in',
+                                SILENCE_OPTIONS.find(o => o.value === silenceStatuses[message.id]?.status)?.color || 'bg-slate-50 text-slate-500'
+                              )}>
+                                {SILENCE_OPTIONS.find(o => o.value === silenceStatuses[message.id]?.status)?.icon}
+                                <span>{SILENCE_OPTIONS.find(o => o.value === silenceStatuses[message.id]?.status)?.label}</span>
+                                <span className='text-[10px] opacity-60 ml-1'>
+                                  • expires in {Math.round((silenceStatuses[message.id].expiresAt - Date.now()) / (1000 * 60 * 60))}h
+                                </span>
+                              </div>
+                            )}
+
                              {/* Reaction Trigger Button - Below Message */}
-                             <div className={cn('opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1', {
+                             <div className={cn('opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 relative', {
                                  'justify-end': isCurrentUser,
                                  'justify-start': !isCurrentUser
                              })}>
@@ -398,7 +575,16 @@ const Messages:FC<MessagesProps> = ({
                                    </button>
                                  )}
                                  
-                                 {/* Popover */}
+                                 {/* Silence Button - Only for received messages */}
+                                 {!isCurrentUser && (
+                                   <button 
+                                      onClick={() => setActiveSilencePopover(activeSilencePopover === message.id ? null : message.id)}
+                                      className='p-1.5 rounded-full bg-white/40 hover:bg-white/60 text-slate-500 hover:text-purple-500 transition-all'>
+                                       <MessageCircleOff className='w-4 h-4' />
+                                   </button>
+                                 )}
+
+                                 {/* Reaction Popover */}
                                  {activePopover === message.id && (
                                     <div className='bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-white/50 flex gap-1 animate-in zoom-in-50 duration-200 z-20'>
                                         {REACTION_OPTIONS.map(opt => (
@@ -408,6 +594,27 @@ const Messages:FC<MessagesProps> = ({
                                                 className='px-2 py-1 hover:bg-sky-100 rounded-full text-xs font-medium text-slate-700 transition-colors whitespace-nowrap'
                                             >
                                                 {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                 )}
+
+                                 {/* Silence Status Popover - Only for received messages */}
+                                 {!isCurrentUser && activeSilencePopover === message.id && (
+                                    <div className='absolute bottom-full mb-2 left-0 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border border-white/50 flex flex-col gap-1 animate-in zoom-in-50 duration-200 z-30 min-w-[180px]'>
+                                        <p className='text-[10px] text-slate-400 px-2 mb-1 uppercase tracking-wider'>Explain your silence</p>
+                                        {SILENCE_OPTIONS.map(opt => (
+                                            <button 
+                                                key={opt.value}
+                                                onClick={() => setSilenceStatus(message, opt.value)}
+                                                className={cn(
+                                                  'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all',
+                                                  'hover:scale-[1.02] active:scale-[0.98]',
+                                                  opt.color
+                                                )}
+                                            >
+                                                {opt.icon}
+                                                {opt.label}
                                             </button>
                                         ))}
                                     </div>

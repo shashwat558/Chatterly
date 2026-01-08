@@ -26,6 +26,7 @@ const ChatContainer: FC<ChatContainerProps> = ({
 }) => {
     const [messages, setMessages] = useState<Message[]>(initialMessages)
     const [replyingTo, setReplyingTo] = useState<Message | null>(null)
+    const [isPartnerTyping, setIsPartnerTyping] = useState(false)
 
     const addOptimisticMessage = useCallback((message: Message) => {
         setMessages((prev) => [message, ...prev])
@@ -72,17 +73,27 @@ const ChatContainer: FC<ChatContainerProps> = ({
             ))
         }
 
+        // Handler for typing indicator
+        const typingHandler = ({ userId, isTyping }: { userId: string; userName: string; isTyping: boolean }) => {
+            // Only show typing if it's from the chat partner
+            if (userId === chatPartner.id) {
+                setIsPartnerTyping(isTyping)
+            }
+        }
+
         pusherClient.bind('incoming-message', messageHandler)
         pusherClient.bind('message-update', updateHandler)
         pusherClient.bind('message-status', statusHandler)
+        pusherClient.bind('typing-indicator', typingHandler)
 
         return () => {
             pusherClient.unsubscribe(toPusherKey(`chat:${chatId}`))
             pusherClient.unbind('incoming-message', messageHandler)
             pusherClient.unbind('message-update', updateHandler)
             pusherClient.unbind('message-status', statusHandler)
+            pusherClient.unbind('typing-indicator', typingHandler)
         }
-    }, [chatId, sessionId])
+    }, [chatId, sessionId, chatPartner.id])
 
     return (
         <>
@@ -95,6 +106,23 @@ const ChatContainer: FC<ChatContainerProps> = ({
                 friends={friends}
                 onReply={handleReply}
             />
+            
+            {/* Typing Indicator */}
+            {isPartnerTyping && (
+                <div className='px-8 pb-2'>
+                    <div className='inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-white/50 animate-in fade-in slide-in-from-bottom-2 duration-300'>
+                        <div className='flex items-center gap-1'>
+                            <span className='w-2 h-2 bg-sky-400 rounded-full animate-bounce' style={{ animationDelay: '0ms' }} />
+                            <span className='w-2 h-2 bg-sky-400 rounded-full animate-bounce' style={{ animationDelay: '150ms' }} />
+                            <span className='w-2 h-2 bg-sky-400 rounded-full animate-bounce' style={{ animationDelay: '300ms' }} />
+                        </div>
+                        <span className='text-xs text-slate-500 font-medium'>
+                            {chatPartner.name.split(' ')[0]} is typing...
+                        </span>
+                    </div>
+                </div>
+            )}
+
             <ChatInput 
                 chartPartener={chatPartner}
                 chatId={chatId}

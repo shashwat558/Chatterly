@@ -49,15 +49,12 @@ const page: FC = async () => {
 
   return (
     <main className='relative min-h-full'>
-      {/* Content */}
       <div className='relative z-10 pt-8 pb-12 px-8 max-w-3xl mx-auto'>
-        {/* Header */}
         <div className='mb-8'>
           <h1 className='font-bold text-3xl text-slate-800 mb-2'>Bookmarks</h1>
           <p className='text-slate-500'>Messages you&#39;ve saved for later</p>
         </div>
 
-        {/* Bookmarks List */}
         <div className='glass-panel rounded-3xl p-6 shadow-lg'>
           <BookmarksList initialBookmarks={bookmarksWithSender} sessionId={session.user.id} />
         </div>

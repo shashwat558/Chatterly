@@ -11,19 +11,16 @@ import { toPusherKey } from "@/lib/utils";
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-
-        // Use safeParse to validate and parse the email
         const parseResult = addFriendValidator.safeParse(body);
         
         if (!parseResult.success) {
-            // Handle validation error
             return new Response("Invalid request payload", { status: 422 });
         }
 
         const emailToAdd = parseResult.data.email;
         console.log(emailToAdd + "whatr");
 
-        // Fetch user ID by email
+
         const RESTResponse = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/user:email:${emailToAdd}`, {
             headers: {
                 Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`
@@ -56,7 +53,7 @@ export async function POST(req: Request) {
             return new Response('User already added', { status: 400 });
         }
 
-        // Check if the user is already a friend
+        
         const isAlreadyFriend = (await fetchRedis(
             'sismember',
             `user:${session.user.id}:friends`,
@@ -76,7 +73,7 @@ export async function POST(req: Request) {
             }
           )
 
-        // Add incoming friend request
+        
         await fetchRedis('sadd', `user:${idToAdd}:incoming_friend_requests`, session.user.id);
 
         return new Response("OK");

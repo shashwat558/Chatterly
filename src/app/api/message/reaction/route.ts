@@ -12,14 +12,12 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { chatId, messageId, reaction, timestamp } = body
 
-    // 1. Fetch ALL messages from the chat to find the exact one
     const allMessages = await db.zrange(`chat:${chatId}:messages`, 0, -1, { withScores: true })
     
     if (!allMessages || allMessages.length === 0) {
         return new Response('No messages found', { status: 404 })
     }
 
-    // 2. Find the target message and its index
     let targetMessage: any = null
     let targetScore: number = 0
     
@@ -39,7 +37,7 @@ export async function POST(req: Request) {
         return new Response('Message not found', { status: 404 })
     }
 
-    // 3. Update reactions
+
     const userId = session.user.id
     const currentReactions = targetMessage.reactions || {}
     const userReactions = currentReactions[userId] || []
@@ -62,12 +60,9 @@ export async function POST(req: Request) {
         reactions: currentReactions
     }
 
-    // 4. Update DB - Remove by score range and re-add
-    // Use ZREMRANGEBYSCORE to remove messages at exact timestamp, then add updated one
+    
     await db.zremrangebyscore(`chat:${chatId}:messages`, targetScore, targetScore)
     await db.zadd(`chat:${chatId}:messages`, { score: targetScore, member: JSON.stringify(updatedMessage) })
-
-    // 5. Trigger Pusher
     await pusherServer.trigger(toPusherKey(`chat:${chatId}`), 'message-update', updatedMessage)
 
     return new Response('OK')
