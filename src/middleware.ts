@@ -26,7 +26,8 @@ export default withAuth(
             
         }
 
-        if(pathname === '/' ){
+        // Only redirect to dashboard if logged in
+        if(pathname === '/' && isAuth){
             return NextResponse.redirect(new URL('/dashboard', req.url))
         }
     }, {

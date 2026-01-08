@@ -4,7 +4,7 @@ import { FC, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { toast } from 'react-hot-toast'
 import Button from '@/components/ui/Button'
-import { Icons } from '@/components/icons'
+import Image from 'next/image'
 
 interface PageProps {}
 
@@ -31,8 +31,8 @@ const Page: FC<PageProps> = ({}) => {
 
         <div className='w-full flex flex-col items-center max-w-sm space-y-8 p-10 glass-card rounded-3xl z-10'>
           <div className='flex flex-col items-center gap-3 animate-fade-in'>
-            <div className="p-3 bg-sky-50 rounded-2xl">
-              <Icons.Logo className='h-10 w-auto text-sky-600' />
+            <div className="p-2 bg-sky-50 rounded-2xl">
+              <Image src='/logo2.png' alt='Chatterly Logo' width={48} height={48} className='h-12 w-auto' />
             </div>
             <span className='font-bold text-2xl text-slate-800 tracking-tight'>Chatterly</span>
           </div>
