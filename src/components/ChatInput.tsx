@@ -1,5 +1,6 @@
 "use client"
 
+import { SendHorizontal } from 'lucide-react';
 import React, { FC, useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import Button from './ui/Button';
@@ -36,8 +37,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId}) => {
     }
 
   return (
-    <div className='border-1 border-gray-200 px-4 pt-4 mb-2 sm:mb-0'>
-        <div className='relative flex-1 overflow-hidden rounded-lg shadow-sm ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-600'>
+    <div className='p-4 pb-6 mx-4 mb-2'>
+        <div className='relative flex items-center gap-3 bg-white/80 backdrop-blur-md rounded-[32px] p-2 shadow-lg ring-1 ring-white/60 focus-within:ring-2 focus-within:ring-sky-200 focus-within:shadow-xl transition-all duration-300'>
             <TextareaAutosize ref={textareaRef} onKeyDown={(e) => {
                 if(e.key === "Return" && !e.shiftKey){
                     e.preventDefault()
@@ -47,23 +48,21 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId}) => {
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Message ${chartPartener.name.split(' ')[0]}`}
-            className='block w-full resize-none border-0 bg-transparent text-gray-900 placeholder:text-gray-700 focus:ring-0 sm:py-1.5 sm:text-sm sm:leading-6'
+            placeholder={`Message ${chartPartener.name.split(' ')[0]}...`}
+            className='block w-full resize-none border-0 bg-transparent text-slate-800 placeholder:text-slate-400 focus:ring-0 py-3 px-4 text-sm sm:leading-6 max-h-32 overflow-y-auto scrollbar-none'
             />
             <div onClick={() => textareaRef.current?.focus()} 
-            className='py-2'
+            className=''
             aria-hidden= 'true' >
-                <div className='py-px'>
-                    <div className='h-9' />
-                </div>
-
+               
             </div>
-            <div className='absolute right-0 bottom-0 flex justify-between py-2 pl-3 pr-2'>
-                <div className='flex-shrink-0'>
-
-                    <Button isLoading={loading} onClick={sendMessage} type='submit'>Post</Button>
-                </div>
+            
+            <div className="pr-1">
+                 <Button isLoading={loading} onClick={sendMessage} type='submit' size='sm' className='rounded-full h-10 w-10 p-0 flex items-center justify-center bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 shadow-lg shadow-sky-200'>
+                    <SendHorizontal className="w-5 h-5 text-white ml-0.5" />
+                </Button>
             </div>
+           
         </div>
     </div>
   )

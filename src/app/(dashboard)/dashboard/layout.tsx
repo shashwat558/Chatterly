@@ -46,38 +46,50 @@ const Layout: FC<LayoutProps> = async ({children}) => {
 
 
     return <div className='w-full flex h-screen'>
-        <div className='flex h-full w-full max-w-xs grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6'>
-        <Link  className='flex h-16 shrink-0 items-center' href={'/dashboard'}>
-           <Icons.Logo className='h-8 w-auto text-indigo-600' />
-        </Link>
+        {/* Subtle background gradient for the whole app */}
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-50 to-white -z-10" />
 
-        {friends.length > 0 ? (
-            <div className='text-xs font-semibold leading-6 text-gray-400'>
-            Your chats
+        <div className='relative flex h-full w-full max-w-[300px] shrink-0 grow flex-col gap-y-6 overflow-y-auto m-4 rounded-3xl p-6 overflow-hidden border-2 border-slate-200/60 shadow-xl'>
+        
+        {/* Sidebar Background Image */}
+        <div className="absolute inset-0 -z-10">
+            <Image 
+                src="/sidebar.jpeg" 
+                alt="" 
+                fill 
+                className="object-cover brightness-[0.85]" 
+                priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-900/30 via-slate-800/40 to-slate-900/50 backdrop-blur-[2px]" />
         </div>
-        ): null}   
 
-        <nav className='flex flex-1 flex-col '>
-            <ul role='list' className='flex flex-1 flex-col gap-y-7'>
-                
-                <li>
-                    <SideBarChatList friends={friends} sessionId={session.user.id}/>
-                </li>
-                <li>
-                    <div className='text-xs font-semibold leading-6 text-gray-400'>
-                        overview
-                    </div>
-                </li>
-
-                <ul role='list' className='-mx-2 space-y-1'>
+        <Link  className='flex h-16 shrink-0 items-center gap-3 px-2 group' href={'/dashboard'}>
+            <div className="p-2.5 bg-white/80 rounded-2xl group-hover:bg-white transition-all duration-300 shadow-md backdrop-blur-md border border-white/70">
+               <Icons.Logo className='h-7 w-auto text-sky-600' />
+            </div>
+           <span className='font-bold text-xl text-white tracking-tight drop-shadow-md'>Chatterly</span>
+        </Link>
+        <div className='flex flex-1 flex-col gap-y-8'>
+            <div className="flex flex-col gap-y-2 p-3 bg-white/20 rounded-2xl border border-white/30 backdrop-blur-sm">
+                <div className='text-[10px] font-bold leading-6 text-white/80 tracking-widest uppercase px-2'>
+                    Conversations
+                </div>
+                <SideBarChatList friends={friends} sessionId={session.user.id}/>
+            </div>
+            
+            <div className="flex flex-col gap-y-2 p-3 bg-white/20 rounded-2xl border border-white/30 backdrop-blur-sm">
+                 <div className='text-[10px] font-bold leading-6 text-white/80 tracking-widest uppercase px-2'>
+                    Menu
+                </div>
+                <ul role='list' className='space-y-1'>
                     {sidebarOptions.map((option) => {
                         const Icon = Icons[option.Icon]
                         return (
                             <li key={option.id}>
-                                <Link href={option.href} className='text-gray-700 hover:text-indigo-600 hover:bg-gray-50 group flex gap-3 rounded-md p-2 leading-6 '>
+                                <Link href={option.href} className='text-white/90 hover:text-white hover:bg-white/30 group flex gap-3 rounded-xl p-3 text-sm leading-6 font-medium transition-all duration-200 backdrop-blur-sm border border-transparent hover:border-white/40'>
 
-                                  <span className='text-gray-400 border-gray-200 group-hover:border-indigo-600 group-hover:text-indigo-600 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg border text-[o.625rem] font-medium bg-white'>
-                                    <Icon  className='h-4 w-4 '/>
+                                  <span className='text-white/70 group-hover:text-sky-300 flex justify-center items-center'>
+                                    <Icon  className='h-5 w-5'/>
                                   </span>
                                   <span className='truncate'>{option.name}</span>
                                 </Link>
@@ -88,37 +100,38 @@ const Layout: FC<LayoutProps> = async ({children}) => {
                     <FreindRequetsSidebarOption initialUnseenRequestCount={unseenRequest} sessionId={session.user.id}/>
                 </li>
                 </ul>
-               
-                <li className='-mx-6 mt-auto flex items-center'>
-                    <div className='flex flex-1 items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-800'>
-                        <div className='relative h-8 w-8 bg-gray-50'>
+            </div>
+
+             <div className='mt-auto flex items-center p-3 bg-white/70 rounded-2xl border border-white/60 shadow-lg backdrop-blur-md'>
+                    <div className='flex flex-1 items-center gap-x-3 text-sm font-semibold leading-6 text-gray-800'>
+                        <div className='relative h-10 w-10'>
                             <Image src={session.user.image || ""}
-                            className='rounded-full'
+                            className='rounded-full ring-2 ring-white shadow-md'
                             fill
                             referrerPolicy='no-referrer'
                             alt='Your profile picture'
-                            
                             />
+                            <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-400 border-2 border-white shadow-sm"></div>
                         </div>
-                        <span className='sr-only'>Your Profile</span>
                         <div className='flex flex-col'>
-                            <span aria-hidden="true">{session.user.name}</span>
-                            <span className='text-xs text-zinc-400' aria-hidden='true'>
+                            <span aria-hidden="true" className='text-slate-800 font-bold text-sm truncate max-w-[100px]'>{session.user.name}</span>
+                            <span className='text-[11px] text-slate-600 truncate max-w-[100px] font-medium' aria-hidden='true'>
                                 {session.user.email}
                             </span>
                         </div>
                     </div>
-                    <SignOutButton  className='h-full aspect-square '/>
+                    <SignOutButton  className='h-9 w-9 text-slate-600 hover:text-red-500 hover:bg-red-50 rounded-xl p-2 transition-all border border-transparent hover:border-red-200'/>
 
-                </li>
-                
-            </ul>
-        </nav> 
-        
-        
+             </div>
+        </div>
         
         </div>
-        {children}
+        <main className="flex-1 max-w-full p-4 pl-0">
+            <div className="h-full w-full bg-white/40 rounded-3xl border border-white/40 shadow-sm backdrop-blur-sm overflow-hidden relative">
+                 {children}
+            </div>
+        
+        </main>
         </div>
 }
 

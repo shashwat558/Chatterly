@@ -25,7 +25,6 @@ const FreindRequetsSidebarOption: FC<FreindRequetsSidebarOptionProps> = ({
           toPusherKey(`user:${sessionId}:incoming_friend_requests`)
         )
         pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`))
-        console.log(sessionId)
     
         const friendRequestHandler = () => {
           setUnseenRequestCount((prev) => prev + 1)
@@ -52,17 +51,18 @@ const FreindRequetsSidebarOption: FC<FreindRequetsSidebarOptionProps> = ({
 
 
   return (
-    <Link href='/dashboard/requests' className='text-gray-700 hover:text-indigo-600 hover:bg-gray-50 group flex items-center gap-x-3 rounded-md p-2 text-sm font-semibold'>
-        <div className='text-gray-400 border-gray-200 group-hover:border-indigo-500 group-hover:text-indigo-600 flex h06 h-6 shrink-0 items-center justify-center rounded-lg border text-[0.625rem] bg-white'>
-            <User  className='h-5 w-5'/>
+    <Link href='/dashboard/requests' className='text-white/90 hover:text-white hover:bg-white/30 group flex items-center gap-x-3 rounded-xl p-3 text-sm leading-6 font-medium transition-all border border-transparent hover:border-white/40'>
+        <div className='text-white/70 group-hover:text-sky-300 flex shrink-0 items-center justify-center'>
+            <User className='h-5 w-5'/>
         </div>
         <p className='truncate'>Friend requests</p>
-
+        
         {unseenRequestCount > 0 ? (
-            <div className='rounded-full w-5 h-5 text-xs flex justify-center items-center text-white bg-indigo-600'>
+            <div className='bg-sky-500 font-bold text-[0.625rem] text-white px-2 py-0.5 rounded-full ml-auto shadow-md'>
                 {unseenRequestCount}
             </div>
         ): null}
+        
     </Link>
   )
 }

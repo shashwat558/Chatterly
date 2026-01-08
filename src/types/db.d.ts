@@ -17,6 +17,7 @@ interface Message {
     recieverId: string
     text: string
     timestamp : number
+    reactions?: Record<string, string[]>
 }
 
 

@@ -3,9 +3,10 @@
 import { pusherClient } from '@/lib/pusher'
 import { toPusherKey } from '@/lib/utils'
 import axios from 'axios'
-import { Check, UserPlus, X } from 'lucide-react'
+import { Check, User, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { FC, useEffect, useState } from 'react'
+import Button from './ui/Button'
 
 interface FreindRequetsProps {
     incomingFriendRequests: IncomingFriendRequest[]
@@ -24,13 +25,11 @@ const FriendRequest:FC<FreindRequetsProps> = ({
       pusherClient.subscribe(
         toPusherKey(`user:${sessionId}:incoming_friend_requests`)
       )
-      console.log("listening to ", `user:${sessionId}:incoming_friend_requests`)
   
       const friendRequestHandler = ({
         senderId,
         senderEmail,
       }: IncomingFriendRequest) => {
-        console.log("function got called")
         setFriendRequests((prev) => [...prev, { senderId, senderEmail }])
       }
   
@@ -63,20 +62,39 @@ const FriendRequest:FC<FreindRequetsProps> = ({
 
   return (
     <>
-      {FriendRequest.length === 0 ? (
-        <p className='text-sm text-zinc-900'>Nothing to show here... </p>
+      {friendRequests.length === 0 ? (
+        <div className='flex flex-col items-center justify-center py-16 text-center'>
+            <div className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mb-4 border border-sky-100">
+                <User className="h-10 w-10 text-sky-300" />
+            </div>
+             <p className='text-lg text-slate-600 font-medium'>No pending requests</p>
+             <p className='text-sm text-slate-400 mt-1'>When someone sends you a request, it will appear here</p>
+        </div>
+       
 
       ): (
         friendRequests.map((request) => (
-            <div key={request.senderId} className='flex gap-4 items-center'>
-                <UserPlus  className='text-black' />
-                <p className='font-medium text-lg'>{request.senderEmail}</p>
-                <button onClick={() => acceptFriend(request.senderId)} aria-label='accept friend' className='w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-700 grid place-items-center transition hover:shadow-md'>
-                    <Check className='font-semibold  text-white w-3/4 h-3/4' />
-                </button>
-                <button onClick={() => denyFriend(request.senderId)} aria-label='deny friend' className='w-8 h-8 rounded-full bg-red-600 hover:bg-indigo-700 grid place-items-center transition hover:shadow-md'>
-                    <X className='font-semibold  text-white w-3/4 h-3/4'/>
-                </button>
+            <div key={request.senderId} className='flex gap-4 items-center justify-between py-4 px-6 bg-white/70 backdrop-blur-sm border border-white/60 rounded-2xl hover:bg-white hover:shadow-lg transition-all duration-300'>
+                <div className='flex items-center gap-4'>
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        {request.senderEmail?.charAt(0).toUpperCase()}
+                    </div>
+                    <div className='flex flex-col'>
+                      <p className='font-semibold text-slate-800'>{request.senderEmail}</p>
+                      <p className='text-xs text-slate-500'>Wants to connect with you</p>
+                    </div>
+                </div>
+               
+                <div className='flex items-center gap-2'>
+                     <button onClick={() => acceptFriend(request.senderId)} aria-label='accept friend' className='px-4 py-2 rounded-full bg-sky-500 hover:bg-sky-600 text-white font-medium text-sm flex items-center gap-2 transition-all shadow-md hover:shadow-lg'>
+                         <Check className='w-4 h-4' />
+                         Accept
+                    </button>
+                    <button onClick={() => denyFriend(request.senderId)} aria-label='deny friend' className='w-10 h-10 rounded-full bg-slate-100 hover:bg-red-500 hover:text-white grid place-items-center transition-all text-slate-400 border border-slate-200 hover:border-red-500'>
+                        <X className='w-4 h-4'/>
+                    </button>
+                </div>
+               
 
             </div>
         ))

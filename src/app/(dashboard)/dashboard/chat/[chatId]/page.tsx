@@ -65,29 +65,45 @@ const page: FC<PageProps> = async ({params}: PageProps) => {
 
 
   return (
-    <div className='flex-1 justify-between flex flex-col max-h-[calc(100vh-6rem)]'>
-      <div className='flex sm:items-center justify-between py-3 border-b-2 border-gray-200'>
-        <div className='relative flex items-center space-x-4'>
-          <div className='relative'>
-            <div className='relative w-8 sm:w-12 sm:h-12'>
-              <Image 
-               fill
-               referrerPolicy='no-referrer'
-               src= {chatPartener.image}
-               alt={`${chatPartener.name} profile picture`}
-               className='rounded-full'
-              />
+    <div className='flex-1 justify-between flex flex-col h-full max-h-screen relative'>
+      
+      {/* Background Image with Fade */}
+      <div className='absolute inset-0 z-0 overflow-hidden pointer-events-none' style={{ 
+          maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)', 
+          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)' 
+        }}>
+          <Image 
+            src="/bg.avif" 
+            alt="Chat Background" 
+            fill
+            className='object-cover opacity-70'
+            priority
+          />
+      </div>
 
+      {/* Floating Header */}
+      <div className='absolute top-4 left-4 right-4 z-10'>
+          <div className='flex sm:items-center justify-between py-3 px-6 glass-panel rounded-2xl'>
+            <div className='relative flex items-center gap-4'>
+                <div className='relative w-10 h-10'>
+                  <Image 
+                  fill
+                  referrerPolicy='no-referrer'
+                  src= {chatPartener.image}
+                  alt={`${chatPartener.name} profile picture`}
+                  className='rounded-full ring-2 ring-white shadow-sm'
+                  />
+                  <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-400 border-2 border-white shadow-sm"></div>
+
+                </div>
+              <div className='flex flex-col leading-tight'>
+                <div className='text-lg flex items-center'>
+                  <span className='text-slate-800 font-bold mr-3'>{chatPartener.name}</span>
+                </div>
+                <span className='text-xs text-slate-400 max-w-xs truncate font-medium'>{chatPartener.email}</span>
+              </div>
             </div>
           </div>
-          <div className='flex flex-col leading-tight'>
-            <div className='text-xl flex items-center'>
-              <span className='text-gray-700 mr-3 font-semibold'>{chatPartener.name}</span>
-            </div>
-
-            <span className='text-sm text-gray-600'>{chatPartener.email}</span>
-          </div>
-        </div>
       </div>
 
       <Messages chatId={chatId} initialMessages={initialMessages} sessionId={user.id} sessionImg={session.user.image} chatPartner={chatPartener} />
