@@ -19,6 +19,8 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "encoding": "^0.1.13",
+    "idb": "^8.0.3",
+    "libsodium-wrappers": "^0.8.0",
     "lucide-react": "^0.438.0",
     "nanoid": "^5.0.7",
     "next": "14.2.7",
@@ -35,6 +37,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@types/libsodium-wrappers": "^0.7.14",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
