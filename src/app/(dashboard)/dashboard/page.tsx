@@ -13,7 +13,6 @@ const page = async({}) =>  {
     return redirect('/')
   }
 
-  
   const friends = await getFriendsByUserId(session.user.id)
   const friendRequests = (await fetchRedis(
     'smembers',

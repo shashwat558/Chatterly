@@ -25,6 +25,19 @@ const Page: FC<PageProps> = ({}) => {
   return (
     <>
       <div className='flex min-h-screen items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden'>
+        {/* Background Image with fade from top to bottom */}
+        <div className="absolute inset-0 -z-20">
+          <Image 
+            src="/loginbg.jpeg" 
+            alt="" 
+            fill 
+            className="object-cover" 
+            priority
+          />
+          {/* Gradient overlay - fades from transparent at top to white at bottom */}
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/50 to-white" />
+        </div>
+
         <div className="absolute top-0 left-0 w-96 h-96 bg-sky-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '0s' }}></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '2s' }}></div>
         <div className="absolute -bottom-32 left-20 w-96 h-96 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-float" style={{ animationDelay: '4s' }}></div>
