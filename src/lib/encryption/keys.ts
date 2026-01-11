@@ -1,7 +1,8 @@
 import { initSodium } from "../utils";
 import { getIdentityKey, storeIdentityPrivateKey } from "./indexdb";
 
-export async function ensureIdentityKey() {
+export async function ensureIdentityKey(userId: string) {
+
     // Only run on client side
     if (typeof window === 'undefined') {
         return null;
@@ -18,6 +19,15 @@ export async function ensureIdentityKey() {
     
     await storeIdentityPrivateKey(sodium.to_base64(keyPair.privateKey));
 
-    return keyPair;
+    await fetch("api/keys/identity", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            publicKey: sodium.to_base64(keyPair.publicKey),
+            userId: userId
+        })
+    })
 
 }

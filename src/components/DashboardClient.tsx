@@ -3,6 +3,9 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Icons } from '@/components/icons'
+import { useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import { ensureIdentityKey } from '@/lib/encryption/keys'
 
 interface Friend {
   id: string
@@ -26,6 +29,14 @@ const DashboardClient = ({
   friendRequests,
   totalMessages,
 }: DashboardClientProps) => {
+  const {data:session, status} = useSession();
+  useEffect(() => {
+    if(status === 'authenticated' && session.user.id){
+      ensureIdentityKey(session.user.id);
+
+    }
+  }, [status, session])
+
   return (
     <div className="h-full w-full relative overflow-hidden">
       {/* Background */}
@@ -166,7 +177,6 @@ const DashboardClient = ({
 
 export default DashboardClient
 
-/* ---------------- helpers ---------------- */
 
 const StatCard = ({
   icon,

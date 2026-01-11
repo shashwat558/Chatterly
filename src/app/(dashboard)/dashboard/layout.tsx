@@ -6,6 +6,7 @@ import { getFriendsByUserId } from '@/helpers/get-friends-by-user-id';
 import { fetchRedis } from '@/helpers/redis';
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
+import { SessionProvider } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -51,8 +52,8 @@ const Layout: FC<LayoutProps> = async ({children}) => {
         ) as User[]).length
 
 
-    return <div className='w-full flex h-screen'>
-        {/* Subtle background gradient for the whole app */}
+    return <SessionProvider session={session}><div className='w-full flex h-screen'>
+        
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50 to-white -z-10" />
 
         <div className='relative flex h-full w-full max-w-[300px] shrink-0 grow flex-col gap-y-6 overflow-y-auto m-4 rounded-3xl p-6 overflow-hidden border-2 border-slate-200/60 shadow-xl'>
@@ -139,6 +140,7 @@ const Layout: FC<LayoutProps> = async ({children}) => {
         
         </main>
         </div>
+    </SessionProvider>
 }
 
 export default Layout;
