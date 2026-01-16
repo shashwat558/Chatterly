@@ -40,19 +40,17 @@ const ChatContainer: FC<ChatContainerProps> = ({
         setReplyingTo(null)
     }, [])
 
-    // Subscribe to Pusher for real-time updates at the container level
+    
     useEffect(() => {
         pusherClient.subscribe(toPusherKey(`chat:${chatId}`))
 
         const messageHandler = (message: Message) => {
             setMessages((prev) => {
-                // Check if this is an update to an optimistic message (same id)
                 const existingIndex = prev.findIndex(m => m.id === message.id)
                 if (existingIndex !== -1) {
-                    // Update the existing optimistic message with server data
                     return prev.map(m => m.id === message.id ? { ...message, status: message.status || 'sent' } : m)
-                }
-                // New message from other user - only add if from partner
+                    }
+                    
                 if (message.senderId !== sessionId) {
                     return [message, ...prev]
                 }
@@ -65,17 +63,13 @@ const ChatContainer: FC<ChatContainerProps> = ({
                 msg.id === updatedMessage.id ? updatedMessage : msg
             ))
         }
-
-        // Handler for status updates
         const statusHandler = ({ messageId, status }: { messageId: string; status: string }) => {
             setMessages((prev) => prev.map(msg => 
                 msg.id === messageId ? { ...msg, status: status as Message['status'] } : msg
             ))
         }
-
-        // Handler for typing indicator
         const typingHandler = ({ userId, isTyping }: { userId: string; userName: string; isTyping: boolean }) => {
-            // Only show typing if it's from the chat partner
+           
             if (userId === chatPartner.id) {
                 setIsPartnerTyping(isTyping)
             }

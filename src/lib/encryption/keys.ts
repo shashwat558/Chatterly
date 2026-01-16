@@ -1,5 +1,5 @@
 import { initSodium } from "../utils";
-import { getIdentityKey, storeIdentityPrivateKey } from "./indexdb";
+import { getIdentityKey, getIdentityPrivateKey, storeIdentityPrivateKey } from "./indexdb";
 
 export async function ensureIdentityKey(userId: string) {
 
@@ -29,5 +29,49 @@ export async function ensureIdentityKey(userId: string) {
             userId: userId
         })
     })
+
+}
+
+export function amIClient(myUserId: string, otherUserId: string) {
+    return myUserId < otherUserId;
+}
+
+export async function deriveSessionKeys(ourPublicKeyBase64: string, theirPublicKeyBase64: string, myUserId: string, otherUserId: string) {
+    const sodium = await initSodium();
+    let ourRecievingKey, ourSendingKey;
+    const ourPrivateKeyBase64 = await getIdentityPrivateKey();
+    if(!ourPrivateKeyBase64) {
+        throw new Error("Our private key is not available");
+    }
+    const ourPrivatedKey = sodium.from_base64(ourPrivateKeyBase64);
+    const theirPublicKey = sodium.from_base64(theirPublicKeyBase64);
+    const ourPublicKey = sodium.from_base64(ourPublicKeyBase64);
+
+    if(amIClient(myUserId, otherUserId)){
+        const sessionKeys = sodium.crypto_kx_client_session_keys(
+        ourPublicKey,
+        ourPrivatedKey,
+        theirPublicKey
+
+    );
+    ourRecievingKey = sessionKeys.sharedRx
+    ourSendingKey = sessionKeys.sharedTx
+    }
+
+    else {
+        const sessionKeys = sodium.crypto_kx_server_session_keys(
+            ourPublicKey,
+            ourPrivatedKey,
+            theirPublicKey
+        );
+        ourRecievingKey = sessionKeys.sharedRx
+        ourSendingKey = sessionKeys.sharedTx  
+        
+    }
+
+    
+
+
+
 
 }

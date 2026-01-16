@@ -26,4 +26,10 @@ export async function storeIdentityPrivateKey(privateKeyBase64: string) {
     const db = await getDB();
     if (!db) return;
     await db.put("keys", privateKeyBase64, "identity_private");
-} 
+}
+
+export async function getIdentityPrivateKey() {
+    const db = await getDB();
+    if(!db) return null;
+    return db.get("keys", "identity_private")
+}

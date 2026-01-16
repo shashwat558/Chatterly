@@ -75,7 +75,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         }
     }, [chatId])
 
-    // Focus textarea when replying
+    
     useEffect(() => {
         if (replyingTo) {
             textareaRef.current?.focus()
@@ -89,7 +89,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         const messageId = nanoid()
         const timestamp = Date.now()
 
-        // Build replyTo data if replying
+        
         const replyToData: ReplyTo | undefined = replyingTo ? {
             id: replyingTo.id,
             senderId: replyingTo.senderId,
@@ -97,7 +97,6 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             senderName: replyingTo.senderId === sessionId ? 'You' : chartPartener.name
         } : undefined
         
-        // Create optimistic message with 'sending' status
         const optimisticMessage = {
             id: messageId,
             senderId: sessionId,
@@ -107,13 +106,12 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             replyTo: replyToData
         }
         
-        // Add optimistic message immediately
         onOptimisticMessage?.(optimisticMessage)
         
         const messageText = input
         setInput("");
-        sendTypingIndicator(false) // Stop typing when message sent
-        onCancelReply?.() // Clear reply state
+        sendTypingIndicator(false) 
+        onCancelReply?.() 
         textareaRef.current?.focus()
         
         try {
@@ -124,7 +122,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
                 timestamp,
                 replyTo: replyToData
             })
-            // Message status will be updated via Pusher
+            
         } catch (error) {
             toast.error("Something went wrong. Please try again later")
             console.log(error)

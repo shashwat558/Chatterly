@@ -110,10 +110,9 @@ const Messages:FC<MessagesProps> = ({
        fetchBookmarks()
      }, [])
 
-     // Fetch silence statuses for partner's messages
      useEffect(() => {
        const fetchSilenceStatuses = async () => {
-         // Only fetch silence statuses for messages I sent (partner may have silenced them)
+        
          const myMessageIds = messages
            .filter(msg => msg.senderId === sessionId)
            .map(msg => msg.id)
@@ -129,7 +128,6 @@ const Messages:FC<MessagesProps> = ({
            })
            const statuses = res.data as Record<string, SilenceData | null>
            
-           // Filter out null values and set
            const validStatuses: Record<string, SilenceData> = {}
            Object.entries(statuses).forEach(([msgId, data]) => {
              if (data) {
@@ -143,7 +141,6 @@ const Messages:FC<MessagesProps> = ({
        }
        fetchSilenceStatuses()
        
-       // Set up interval to clear expired silence statuses
        const interval = setInterval(() => {
          setSilenceStatuses(prev => {
            const now = Date.now()
@@ -155,15 +152,14 @@ const Messages:FC<MessagesProps> = ({
            })
            return updated
          })
-       }, 60000) // Check every minute
+       }, 60000) 
        
        return () => clearInterval(interval)
      }, [messages, chatId, sessionId, chatPartner.name])
 
-     // Subscribe to real-time silence status updates
      useEffect(() => {
        const silenceHandler = (data: { messageId: string; userId: string; userName: string; status: SilenceStatus; expiresAt: number }) => {
-         // Only update if the silence is from the chat partner (they silenced our message)
+ 
          if (data.userId === chatPartner.id) {
            setSilenceStatuses(prev => ({
              ...prev,
@@ -195,10 +191,8 @@ const Messages:FC<MessagesProps> = ({
        }
      }, [chatPartner.id])
 
-    // Mark messages as seen when viewing
     useEffect(() => {
       const markAsSeen = async () => {
-        // Find messages from chat partner that aren't seen yet
         const unseenMessages = messages.filter(
           msg => msg.senderId !== sessionId && msg.status !== 'seen'
         )
@@ -215,7 +209,6 @@ const Messages:FC<MessagesProps> = ({
         }
       }
       
-      // Debounce the seen marking
       const timer = setTimeout(markAsSeen, 500)
       return () => clearTimeout(timer)
     }, [messages, chatId, sessionId])
@@ -230,12 +223,11 @@ const Messages:FC<MessagesProps> = ({
       const date = new Date(timestamp)
       if (isToday(date)) return 'Today'
       if (isYesterday(date)) return 'Yesterday'
-      if (isThisWeek(date)) return format(date, 'EEEE') // e.g., "Monday"
+      if (isThisWeek(date)) return format(date, 'EEEE') 
       if (isThisMonth(date)) return 'Earlier this month'
-      return format(date, 'MMMM yyyy') // e.g., "December 2025"
+      return format(date, 'MMMM yyyy') 
     }
 
-    // Group messages by session (reversed since messages are newest first)
     const getMessageSession = (message: Message, prevMessage: Message | undefined): string | null => {
       const currentLabel = getSessionLabel(message.timestamp)
       if (!prevMessage) return currentLabel
@@ -434,14 +426,9 @@ const Messages:FC<MessagesProps> = ({
           const hasNextMessageFromSameUser = messages[index - 1]?.senderId === messages[index].senderId;
           
           const reactions = message.reactions || {}
-          // Flatten reactions into a list of strings
-          // Note: If you want to show WHO reacted, logic needs to be here. 
-          // For now just showing labels.
-          // Getting precise list of unique reactions or all reactions?
-          // "Limit reactions to short calm acknowledgements" -> show all
+         
           const flatReactions = Object.values(reactions).flat()
 
-          // Session header logic (shows AFTER the message since list is reversed)
           const sessionLabel = getMessageSession(message, messages[index + 1])
 
           return (
@@ -454,7 +441,7 @@ const Messages:FC<MessagesProps> = ({
                             'order-1 items-end': isCurrentUser,
                             'order-2 items-start': !isCurrentUser,
                           })}>
-                             {/* Reply Preview - shows what message this is replying to */}
+                             
                              {message.replyTo && (
                                <div 
                                  className={cn(
@@ -464,7 +451,6 @@ const Messages:FC<MessagesProps> = ({
                                      : 'bg-slate-100/80 border border-slate-200/60'
                                  )}
                                  onClick={() => {
-                                   // Scroll to original message
                                    const element = document.getElementById(`message-${message.replyTo?.id}`)
                                    element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
                                    element?.classList.add('ring-2', 'ring-sky-400')
