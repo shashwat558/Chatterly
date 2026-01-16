@@ -13,8 +13,10 @@ export async function POST(req: NextRequest) {
             },
             cache: 'no-store',
     });
+    const {result} = await alreadyExistsResponse.text().then(text => JSON.parse(text));
+    console.log('Existing key fetch result:', result);
 
-    if (!alreadyExistsResponse.ok) {
+    if (result === null) {
         await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/set/user:${userId}:identity_key`, {
             method: 'POST',
             headers: {
@@ -25,9 +27,12 @@ export async function POST(req: NextRequest) {
                 value: publicKey
             })
         });
+        return new Response("Public key stored successfully", { status: 200 });
+    } else {
+        return new Response("Public key already exists", { status: 409 });
     }
 
-    return new Response("Public key stored successfully", { status: 200 });
+    
 
     
 }

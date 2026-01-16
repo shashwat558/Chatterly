@@ -2,11 +2,11 @@ import FreindRequetsSidebarOption from '@/components/FreindRequetsSidebarOption'
 import { Icon, Icons } from '@/components/icons';
 import SideBarChatList from '@/components/SideBarChatList';
 import SignOutButton from '@/components/SignOutButton';
+import Providers from '@/components/Providers';
 import { getFriendsByUserId } from '@/helpers/get-friends-by-user-id';
 import { fetchRedis } from '@/helpers/redis';
 import { authOptions } from '@/lib/auth';
 import { getServerSession } from 'next-auth';
-import { SessionProvider } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -52,7 +52,7 @@ const Layout: FC<LayoutProps> = async ({children}) => {
         ) as User[]).length
 
 
-    return <SessionProvider session={session}><div className='w-full flex h-screen'>
+    return <Providers><div className='w-full flex h-screen'>
         
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50 to-white -z-10" />
 
@@ -140,7 +140,7 @@ const Layout: FC<LayoutProps> = async ({children}) => {
         
         </main>
         </div>
-    </SessionProvider>
+    </Providers>
 }
 
 export default Layout;
