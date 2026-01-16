@@ -1,3 +1,4 @@
+import { setSessionKeys } from "../sessionKeys";
 import { initSodium } from "../utils";
 import { getIdentityKey, getIdentityPrivateKey, storeIdentityPrivateKey } from "./indexdb";
 
@@ -36,7 +37,7 @@ export function amIClient(myUserId: string, otherUserId: string) {
     return myUserId < otherUserId;
 }
 
-export async function deriveSessionKeys(ourPublicKeyBase64: string, theirPublicKeyBase64: string, myUserId: string, otherUserId: string) {
+export async function deriveSessionKeys(ourPublicKeyBase64: string, theirPublicKeyBase64: string, myUserId: string, otherUserId: string, chatId: string) {
     const sodium = await initSodium();
     let ourRecievingKey, ourSendingKey;
     const ourPrivateKeyBase64 = await getIdentityPrivateKey();
@@ -56,6 +57,7 @@ export async function deriveSessionKeys(ourPublicKeyBase64: string, theirPublicK
     );
     ourRecievingKey = sessionKeys.sharedRx
     ourSendingKey = sessionKeys.sharedTx
+    setSessionKeys(chatId, {rx: ourRecievingKey, tx: ourSendingKey});
     }
 
     else {
@@ -66,12 +68,10 @@ export async function deriveSessionKeys(ourPublicKeyBase64: string, theirPublicK
         );
         ourRecievingKey = sessionKeys.sharedRx
         ourSendingKey = sessionKeys.sharedTx  
+        setSessionKeys(chatId, {rx: ourRecievingKey, tx: ourSendingKey});
         
     }
 
     
-
-
-
 
 }
