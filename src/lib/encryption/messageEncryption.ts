@@ -18,13 +18,12 @@ export async function encryptMessage(message: string, tx:Uint8Array){
 }
 
 export async function decryptMessage(cipherText: string, rx:Uint8Array){
-    const nonce = sodium.randombytes_buf(
-        sodium.crypto_secretbox_NONCEBYTES
-    );
+    const nonce = sodium.from_base64(cipherText);
+    
     const plainText = sodium.crypto_secretbox_open_easy(
         cipherText,
         nonce,
         rx
-    );
+    );  
     return plainText
 }

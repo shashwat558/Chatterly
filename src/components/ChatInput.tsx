@@ -128,7 +128,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             return;
         };
         const cipherText = await encryptMessage(input, tx);
-        
+        console.log("Cipher Text: ", cipherText.cipherText)
+        console.log("Nonce: ", cipherText.nonce)
 
 
 
@@ -147,7 +148,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         const optimisticMessage = {
             id: messageId,
             senderId: sessionId,
-            text: cipherText,
+            text: input,
+
             timestamp,
             status: 'sending' as const,
             replyTo: replyToData
@@ -155,7 +157,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         onOptimisticMessage?.(optimisticMessage)
         
-        const messageText = cipherText
+        const messageText = cipherText.cipherText
         setInput("");
         sendTypingIndicator(false) 
         onCancelReply?.() 
