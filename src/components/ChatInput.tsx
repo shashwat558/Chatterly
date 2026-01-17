@@ -4,11 +4,15 @@ import { SendHorizontal, X, Reply } from 'lucide-react';
 import React, { FC, useRef, useState, useEffect, useCallback } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import Button from './ui/Button';
-import axios from 'axios';
+import axios, { get } from 'axios';
 import toast from 'react-hot-toast';
 import { nanoid } from 'nanoid';
 import { Message, ReplyTo } from '@/lib/validations/message';
 import { cn } from '@/lib/utils';
+import { getSessionKeys, hasSessionKeys } from '@/lib/sessionKeys';
+import { deriveSessionKeys } from '@/lib/encryption/keys';
+import { useSession } from 'next-auth/react';
+import { encryptMessage } from '@/lib/encryption/messageEncryption';
 
 interface ChatInputProps {
     chartPartener : User
@@ -20,7 +24,7 @@ interface ChatInputProps {
 }
 
 const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptimisticMessage, replyingTo, onCancelReply}) => {
-
+    const {data: session} = useSession();
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const [sending, setSending] = useState<boolean>(false)
     const [input, setInput] = useState<string>("");
@@ -85,6 +89,49 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
     const sendMessage = async () => {
         if(!input.trim()) return 
         setSending(true)
+        const isSessionKeyAvailable = hasSessionKeys(chatId);
+        if(!isSessionKeyAvailable) {
+            const identityKey = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/user:${session?.user.id}:identity_key`, {
+         headers: {
+                Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`
+            },
+            cache: 'no-store',
+    });
+            const {result: ourPublicKey} = await identityKey.text().then(text => JSON.parse(text));
+            const partnerIdentityKey = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/user:${chartPartener.id}:identity_key`, {
+         headers: {
+                Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`
+            },
+            cache: 'no-store',
+    });
+            const {result: theirPublicKey} = await partnerIdentityKey.text().then(text => JSON.parse(text));
+            if(!ourPublicKey || !theirPublicKey) {
+                toast.error("Encryption keys are missing. Cannot send message securely.")
+                setSending(false)
+                return;
+            }
+            try{
+                await deriveSessionKeys(ourPublicKey, theirPublicKey, session?.user.id!, chartPartener.id, chatId);
+
+
+            } catch(error){
+                toast.error("Failed to establish secure session. Please try again later.")
+                setSending(false)
+                return;
+            }
+        }
+
+        const tx = getSessionKeys(chatId)?.tx;
+        if(!tx){
+            toast.error("Session keys are missing. Cannot send message securely.")
+            setSending(false)
+            return;
+        };
+        const cipherText = await encryptMessage(input, tx);
+        
+
+
+
         
         const messageId = nanoid()
         const timestamp = Date.now()
@@ -100,7 +147,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         const optimisticMessage = {
             id: messageId,
             senderId: sessionId,
-            text: input,
+            text: cipherText,
             timestamp,
             status: 'sending' as const,
             replyTo: replyToData
@@ -108,7 +155,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         onOptimisticMessage?.(optimisticMessage)
         
-        const messageText = input
+        const messageText = cipherText
         setInput("");
         sendTypingIndicator(false) 
         onCancelReply?.() 
