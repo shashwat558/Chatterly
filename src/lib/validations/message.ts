@@ -16,6 +16,7 @@ export const messageValidator = z.object({
     id: z.string(),
     senderId: z.string(),
     text: z.string().max(2000),
+    nonce: z.string(),
     timestamp: z.number(),
     reactions: z.record(z.array(z.string())).optional(),
     status: messageStatusEnum.optional(),

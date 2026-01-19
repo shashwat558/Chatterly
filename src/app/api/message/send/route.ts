@@ -11,7 +11,7 @@ import { toPusherKey } from "@/lib/utils";
 export async function POST(req:Request) {
    try {
        
-    const {text, chatId, messageId, timestamp: clientTimestamp, replyTo}: {text: string, chatId: string, messageId?: string, timestamp?: number, replyTo?: ReplyTo} = await req.json();
+    const {text, nonce, chatId, messageId, timestamp: clientTimestamp, replyTo}: {text: string, nonce: string, chatId: string, messageId?: string, timestamp?: number, replyTo?: ReplyTo} = await req.json();
     const session = await getServerSession(authOptions);
 
     if(!session) return new Response('Unauthorized', {status: 401})
@@ -38,6 +38,7 @@ export async function POST(req:Request) {
         id: messageId || nanoid(),
         senderId: session.user.id,
         text,
+        nonce,
         timestamp,
         status: 'sent',
         replyTo: replyTo || undefined

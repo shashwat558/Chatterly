@@ -14,16 +14,20 @@ export async function encryptMessage(message: string, tx:Uint8Array){
         tx
     )
 
-    return cipherText;
+    return {
+        cipherText: sodium.to_base64(cipherText), nonce: sodium.to_base64(nonce)
+    };
+    
 }
 
-export async function decryptMessage(cipherText: string, rx:Uint8Array){
-    const nonce = sodium.from_base64(cipherText);
+export async function decryptMessage(cipherText: string, rx:Uint8Array, nonce: string){
     
+    const nonceUint8 = sodium.from_base64(nonce);
+    const cipherTextUint8 = sodium.from_base64(cipherText);
     const plainText = sodium.crypto_secretbox_open_easy(
-        cipherText,
-        nonce,
+        cipherTextUint8,
+        nonceUint8,
         rx
     );  
-    return plainText
+    return (sodium.to_string(plainText))
 }

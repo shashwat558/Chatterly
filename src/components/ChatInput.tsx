@@ -24,7 +24,7 @@ interface ChatInputProps {
 }
 
 const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptimisticMessage, replyingTo, onCancelReply}) => {
-    const {data: session} = useSession();
+    
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const [sending, setSending] = useState<boolean>(false)
     const [input, setInput] = useState<string>("");
@@ -91,27 +91,19 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         setSending(true)
         const isSessionKeyAvailable = hasSessionKeys(chatId);
         if(!isSessionKeyAvailable) {
-            const identityKey = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/user:${session?.user.id}:identity_key`, {
-         headers: {
-                Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`
-            },
-            cache: 'no-store',
-    });
-            const {result: ourPublicKey} = await identityKey.text().then(text => JSON.parse(text));
-            const partnerIdentityKey = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/user:${chartPartener.id}:identity_key`, {
-         headers: {
-                Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`
-            },
-            cache: 'no-store',
-    });
-            const {result: theirPublicKey} = await partnerIdentityKey.text().then(text => JSON.parse(text));
+            const identityKeyResponse = await fetch(`/api/keys/identity?userId=${sessionId}`);
+            const { identityKey: ourPublicKey } = await identityKeyResponse.json();
+            const partnerIdentityKeyResponse = await fetch(`/api/keys/identity?userId=${chartPartener.id}`);
+            const { identityKey: theirPublicKey } = await partnerIdentityKeyResponse.json();
+            console.log("Our Public Key: ", ourPublicKey);
+            console.log("Their Public Key: ", theirPublicKey);
             if(!ourPublicKey || !theirPublicKey) {
                 toast.error("Encryption keys are missing. Cannot send message securely.")
                 setSending(false)
                 return;
             }
             try{
-                await deriveSessionKeys(ourPublicKey, theirPublicKey, session?.user.id!, chartPartener.id, chatId);
+                await deriveSessionKeys(ourPublicKey, theirPublicKey, sessionId, chartPartener.id, chatId);
 
 
             } catch(error){
@@ -130,9 +122,6 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         const cipherText = await encryptMessage(input, tx);
         console.log("Cipher Text: ", cipherText.cipherText)
         console.log("Nonce: ", cipherText.nonce)
-
-
-
         
         const messageId = nanoid()
         const timestamp = Date.now()
@@ -165,7 +154,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         try {
             await axios.post('/api/message/send', {
-                text: messageText, 
+                text: messageText,
+                nonce: cipherText.nonce, 
                 chatId,
                 messageId,
                 timestamp,

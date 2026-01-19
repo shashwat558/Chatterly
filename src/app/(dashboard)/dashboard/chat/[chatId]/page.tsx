@@ -42,9 +42,9 @@ const getChatMessages = async (chatId: string)=>{
 }
 
 
-const page: FC<PageProps> = async ({params}: PageProps) => {
+const page = async ({params}: {params: Promise<{chatId: string}>}) => {
 
-  const {chatId} = params;
+  const {chatId} = await params;
   const session = await getServerSession(authOptions);
   if(!session){
     return notFound()
