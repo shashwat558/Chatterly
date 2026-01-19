@@ -130,9 +130,6 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         const cipherText = await encryptMessage(input, tx);
         console.log("Cipher Text: ", cipherText.cipherText)
         console.log("Nonce: ", cipherText.nonce)
-
-
-
         
         const messageId = nanoid()
         const timestamp = Date.now()
@@ -165,7 +162,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         try {
             await axios.post('/api/message/send', {
-                text: messageText, 
+                text: messageText,
+                nonce: cipherText.nonce, 
                 chatId,
                 messageId,
                 timestamp,

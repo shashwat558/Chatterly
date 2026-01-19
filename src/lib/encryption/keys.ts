@@ -1,6 +1,6 @@
 import { setSessionKeys } from "../sessionKeys";
 import { initSodium } from "../utils";
-import { getIdentityKey, getIdentityPrivateKey, storeIdentityPrivateKey } from "./indexdb";
+import { getIdentityKey, getIdentityPrivateKey, storeIdentityKey, storeIdentityPrivateKey } from "./indexdb";
 
 export async function ensureIdentityKey(userId: string) {
 
@@ -19,6 +19,7 @@ export async function ensureIdentityKey(userId: string) {
     const keyPair = sodium.crypto_kx_keypair();
     
     await storeIdentityPrivateKey(sodium.to_base64(keyPair.privateKey));
+    await storeIdentityKey(sodium.to_base64(keyPair.publicKey));
 
     await fetch("api/keys/identity", {
         method: "POST",

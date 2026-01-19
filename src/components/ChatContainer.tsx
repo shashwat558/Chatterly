@@ -6,6 +6,11 @@ import ChatInput from './ChatInput'
 import { Message } from '@/lib/validations/message'
 import { pusherClient } from '@/lib/pusher'
 import { toPusherKey } from '@/lib/utils'
+import { getSessionKeys, hasSessionKeys } from '@/lib/sessionKeys'
+import { getIdentityKey } from '@/lib/encryption/indexdb'
+import { toast } from 'react-hot-toast'
+import { deriveSessionKeys } from '@/lib/encryption/keys'
+import { decryptMessage } from '@/lib/encryption/messageEncryption'
 
 interface ChatContainerProps {
     initialMessages: Message[]
@@ -40,19 +45,57 @@ const ChatContainer: FC<ChatContainerProps> = ({
         setReplyingTo(null)
     }, [])
 
+    useEffect(() => {
+        const deriveKeys = async () => {
+            if(!hasSessionKeys(chatId)) {
+                console.log("Deriving session keys for chat:", chatId);
+                const ourPublicKey = await getIdentityKey();
+                if(!ourPublicKey) {
+                    console.error("Our public key is not available");
+                    return;
+                }
+                const partnerIdentityKey = await fetch(`${process.env.UPSTASH_REDIS_REST_URL}/get/user:${chatPartner.id}:identity_key`, {
+         headers: {
+                Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`
+            },
+            cache: 'no-store',
+    });
+            const {result: theirPublicKey} = await partnerIdentityKey.text().then(text => JSON.parse(text));
+            await deriveSessionKeys(ourPublicKey, theirPublicKey, sessionId, chatPartner.id, chatId);
+            };
+            console.log("Session keys derived for chat:", chatId);
+        }
+        deriveKeys();
+    }, [chatId, chatPartner.id, sessionId])
+
     
     useEffect(() => {
         pusherClient.subscribe(toPusherKey(`chat:${chatId}`))
 
-        const messageHandler = (message: Message) => {
+
+        const messageHandler = async (message: Message) => {
+            let decryptedMessage = message
+
+            if(message.senderId !== sessionId && message.nonce){
+                const sessionKeys = getSessionKeys(chatId);
+                if(sessionKeys){
+                    try {
+                        const decryptedText = await decryptMessage(message.text, sessionKeys.rx, message.nonce);
+                        decryptedMessage = {...message, text: decryptedText}
+                    } catch (error) {
+                        console.error("Failed to decrypt message", error);
+                        decryptedMessage = {...message, text: "[Unable to decrypt message]"}
+                    }
+                }
+            }
             setMessages((prev) => {
-                const existingIndex = prev.findIndex(m => m.id === message.id)
+                const existingIndex = prev.findIndex(m => m.id === decryptedMessage.id)
                 if (existingIndex !== -1) {
-                    return prev.map(m => m.id === message.id ? { ...message, status: message.status || 'sent' } : m)
+                    return prev.map(m => m.id === decryptedMessage.id ? { ...decryptedMessage, status: decryptedMessage.status || 'sent' } : m)
                     }
                     
-                if (message.senderId !== sessionId) {
-                    return [message, ...prev]
+                if (decryptedMessage.senderId !== sessionId) {
+                    return [decryptedMessage, ...prev]
                 }
                 return prev
             })

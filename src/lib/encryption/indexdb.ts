@@ -22,6 +22,12 @@ export async function getIdentityKey() {
     return db.get("keys", "identity");
 }
 
+export async function storeIdentityKey(keyBase64: string) {
+    const db = await getDB();
+    if (!db) return;
+    await db.put("keys", keyBase64, "identity");
+}
+
 export async function storeIdentityPrivateKey(privateKeyBase64: string) {
     const db = await getDB();
     if (!db) return;
