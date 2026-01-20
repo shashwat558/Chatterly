@@ -23,6 +23,17 @@ export const messageValidator = z.object({
     replyTo: replyToValidator.optional()
 })
 
+export const MAX_IMAGE_LENGTH = 1 * 1024 * 1024;
+
+export const allowedImageTypes = [
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml"
+]
+
 export const messageArrayValidator = z.array(messageValidator)
 
 export type Message = z.infer<typeof messageValidator>

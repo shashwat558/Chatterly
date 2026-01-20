@@ -1,13 +1,13 @@
 "use client"
 
-import { SendHorizontal, X, Reply } from 'lucide-react';
+import { SendHorizontal, X, Reply, Image as ImageIcon } from 'lucide-react';
 import React, { FC, useRef, useState, useEffect, useCallback } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import Button from './ui/Button';
 import axios, { get } from 'axios';
 import toast from 'react-hot-toast';
 import { nanoid } from 'nanoid';
-import { Message, ReplyTo } from '@/lib/validations/message';
+import { allowedImageTypes, MAX_IMAGE_LENGTH, Message, ReplyTo } from '@/lib/validations/message';
 import { cn } from '@/lib/utils';
 import { getSessionKeys, hasSessionKeys } from '@/lib/sessionKeys';
 import { deriveSessionKeys } from '@/lib/encryption/keys';
@@ -26,12 +26,57 @@ interface ChatInputProps {
 const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptimisticMessage, replyingTo, onCancelReply}) => {
     
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+    const imgInputRef = useRef<HTMLInputElement | null>(null);
     const [sending, setSending] = useState<boolean>(false)
     const [input, setInput] = useState<string>("");
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [imageZoom, setImageZoom] = useState(1);
+    const [imageRotation, setImageRotation] = useState(0);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
     const isTypingRef = useRef(false)
 
-    // Send typing indicator
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!allowedImageTypes.includes(file.type)) {
+            toast.error('Please select a valid image type.');
+            e.target.value = '';
+            return;
+        }
+
+        if (file.size > MAX_IMAGE_LENGTH) {
+            toast.error(`Image must be ${(MAX_IMAGE_LENGTH / (1024 * 1024)).toFixed(1)}MB or smaller.`);
+            e.target.value = '';
+            return;
+        }
+
+        if (imagePreview) {
+            URL.revokeObjectURL(imagePreview);
+        }
+
+        const url = URL.createObjectURL(file);
+        setSelectedFile(file);
+        setImagePreview(url);
+        setInput('');
+        setImageZoom(1);
+        setImageRotation(0);
+    };
+
+    const removeImage = () => {
+        setSelectedFile(null);
+        if (imagePreview) {
+            URL.revokeObjectURL(imagePreview);
+            setImagePreview(null);
+        }
+        if (imgInputRef.current) {
+            imgInputRef.current.value = "";
+        }
+        setImageZoom(1);
+        setImageRotation(0);
+    };
+
     const sendTypingIndicator = useCallback(async (isTyping: boolean) => {
         if (isTypingRef.current === isTyping) return // Avoid duplicate calls
         isTypingRef.current = isTyping
@@ -43,36 +88,31 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         }
     }, [chatId])
 
-    // Handle input change with typing indicator
+    
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        if (selectedFile) return; // image mode disables typing
         setInput(e.target.value)
         
-        // Send typing: true
         if (e.target.value.trim()) {
             sendTypingIndicator(true)
             
-            // Clear existing timeout
             if (typingTimeoutRef.current) {
                 clearTimeout(typingTimeoutRef.current)
             }
             
-            // Set timeout to stop typing after 2 seconds of inactivity
             typingTimeoutRef.current = setTimeout(() => {
                 sendTypingIndicator(false)
             }, 2000)
         } else {
-            // Input is empty, stop typing
             sendTypingIndicator(false)
         }
     }
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (typingTimeoutRef.current) {
                 clearTimeout(typingTimeoutRef.current)
             }
-            // Send stop typing on unmount
             if (isTypingRef.current) {
                 axios.post('/api/message/typing', { chatId, isTyping: false }).catch(() => {})
             }
@@ -87,7 +127,10 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
     }, [replyingTo])
     
     const sendMessage = async () => {
-        if(!input.trim()) return 
+        const isImageMode = !!selectedFile;
+        const textForSending = isImageMode ? '' : input;
+
+        if(!textForSending.trim() && !selectedFile) return 
         setSending(true)
         const isSessionKeyAvailable = hasSessionKeys(chatId);
         if(!isSessionKeyAvailable) {
@@ -119,7 +162,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             setSending(false)
             return;
         };
-        const cipherText = await encryptMessage(input, tx);
+        const cipherText = await encryptMessage(textForSending, tx);
         console.log("Cipher Text: ", cipherText.cipherText)
         console.log("Nonce: ", cipherText.nonce)
         
@@ -137,7 +180,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         const optimisticMessage = {
             id: messageId,
             senderId: sessionId,
-            text: input,
+            text: textForSending,
 
             timestamp,
             status: 'sending' as const,
@@ -147,7 +190,10 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         onOptimisticMessage?.(optimisticMessage)
         
         const messageText = cipherText.cipherText
+        
+        // Reset Logic
         setInput("");
+        removeImage();
         sendTypingIndicator(false) 
         onCancelReply?.() 
         textareaRef.current?.focus()
@@ -172,10 +218,18 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
 
   return (
     <div className='p-4 pb-6 mx-4 mb-2'>
+        <input 
+            type="file" 
+            ref={imgInputRef} 
+            onChange={handleImageSelect} 
+            className="hidden" 
+            accept={allowedImageTypes.join(', ')}
+        />
+
         {/* Reply Preview */}
         {replyingTo && (
             <div className='mb-2 animate-in slide-in-from-bottom-2 duration-200'>
-                <div className='flex items-center gap-2 bg-white/70 backdrop-blur-sm rounded-t-2xl rounded-b-lg px-4 py-3 border border-white/60 border-b-0'>
+                <div className='flex items-center gap-2 bg-white/70 backdrop-blur-sm rounded-t-2xl rounded-b-lg px-4 py-3 border border-white/60 border-b-0 shadow-sm'>
                     <div className='w-1 h-10 bg-gradient-to-b from-sky-400 to-blue-500 rounded-full' />
                     <div className='flex-1 min-w-0'>
                         <p className='text-xs font-semibold text-sky-600 flex items-center gap-1'>
@@ -194,10 +248,77 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             </div>
         )}
 
+        {/* Image Preview */}
+        {imagePreview && (
+             <div className='mb-3 animate-in slide-in-from-bottom-2 duration-200'>
+                <div className='relative w-full max-w-xl group mx-auto'>
+                    <div className='overflow-hidden rounded-2xl border-2 border-white shadow-xl bg-slate-50'>
+                        <img 
+                            src={imagePreview} 
+                            alt="Preview" 
+                            className='w-full h-56 object-cover transition-transform duration-200'
+                            style={{ transform: `scale(${imageZoom}) rotate(${imageRotation}deg)` }}
+                        />
+                    </div>
+                    <button 
+                        onClick={removeImage}
+                        className='absolute -top-2 -right-2 p-2 bg-white rounded-full shadow-lg text-slate-500 hover:text-red-500 hover:bg-red-50 transition-all duration-200 border border-slate-100'
+                        aria-label='Remove image'
+                    >
+                        <X className='w-4 h-4' />
+                    </button>
+                </div>
+                <div className='mt-3 flex items-center gap-4 text-xs text-slate-500'>
+                    <div className='flex-1'>
+                        <label className='flex items-center gap-2 font-medium text-slate-600'>Zoom
+                            <input 
+                                type="range" 
+                                min={0.75} 
+                                max={1.5} 
+                                step={0.05} 
+                                value={imageZoom} 
+                                onChange={(e) => setImageZoom(Number(e.target.value))}
+                                className='w-full accent-sky-500'
+                            />
+                        </label>
+                    </div>
+                    <div className='flex-1'>
+                        <label className='flex items-center gap-2 font-medium text-slate-600'>Rotate
+                            <input 
+                                type="range" 
+                                min={0} 
+                                max={360} 
+                                step={5} 
+                                value={imageRotation} 
+                                onChange={(e) => setImageRotation(Number(e.target.value))}
+                                className='w-full accent-sky-500'
+                            />
+                        </label>
+                    </div>
+                    <button 
+                        onClick={() => { setImageZoom(1); setImageRotation(0); }}
+                        className='px-3 py-2 rounded-full border text-slate-600 hover:text-slate-800 hover:border-slate-300 bg-white shadow-sm'
+                        type='button'
+                    >
+                        Reset edits
+                    </button>
+                </div>
+            </div>
+        )}
+
         <div className={cn(
             'relative flex items-center gap-3 bg-white/80 backdrop-blur-md p-2 shadow-lg ring-1 ring-white/60 focus-within:ring-2 focus-within:ring-sky-200 focus-within:shadow-xl transition-all duration-300',
-            replyingTo ? 'rounded-b-[32px] rounded-t-lg' : 'rounded-[32px]'
+            (replyingTo || imagePreview) ? 'rounded-b-[32px] rounded-t-lg' : 'rounded-[32px]'
         )}>
+            <div className='pl-1'>
+                 <button
+                    onClick={() => imgInputRef.current?.click()}
+                    className='p-2 text-slate-400 hover:text-sky-500 hover:bg-sky-50 rounded-full transition-colors duration-200'
+                    type='button'
+                 >
+                    <ImageIcon className='w-5 h-5' />
+                 </button>
+            </div>
             <TextareaAutosize ref={textareaRef} onKeyDown={(e) => {
                 if(e.key === "Enter" && !e.shiftKey){
                     e.preventDefault()
@@ -210,8 +331,12 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             rows={1}
             value={input}
             onChange={handleInputChange}
-            placeholder={replyingTo ? 'Type your reply...' : `Message ${chartPartener.name.split(' ')[0]}...`}
-            className='block w-full resize-none border-0 bg-transparent text-slate-800 placeholder:text-slate-400 focus:ring-0 py-3 px-4 text-sm sm:leading-6 max-h-32 overflow-y-auto scrollbar-none'
+            disabled={!!selectedFile}
+            placeholder={selectedFile ? 'Image selected — remove it to type a message' : (replyingTo ? 'Type your reply...' : `Message ${chartPartener.name.split(' ')[0]}...`)}
+            className={cn(
+                'block w-full resize-none border-0 bg-transparent text-slate-800 placeholder:text-slate-400 focus:ring-0 py-3 px-4 text-sm sm:leading-6 max-h-32 overflow-y-auto scrollbar-none',
+                selectedFile && 'cursor-not-allowed opacity-70'
+            )}
             />
             <div onClick={() => textareaRef.current?.focus()} 
             className=''
@@ -220,7 +345,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             </div>
             
             <div className="pr-1">
-                 <Button onClick={sendMessage} type='submit' size='sm' className='rounded-full h-10 w-10 p-0 flex items-center justify-center bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 shadow-lg shadow-sky-200' disabled={sending || !input.trim()}>
+                 <Button onClick={sendMessage} type='submit' size='sm' className='rounded-full h-10 w-10 p-0 flex items-center justify-center bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 shadow-lg shadow-sky-200' disabled={sending || (!input.trim() && !selectedFile)}>
                     <SendHorizontal className="w-5 h-5 text-white ml-0.5" />
                 </Button>
             </div>
