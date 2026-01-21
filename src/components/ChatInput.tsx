@@ -127,112 +127,192 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
     }, [replyingTo])
     
     const sendMessage = async () => {
+        // Validate input
         const isImageMode = !!selectedFile;
         const textForSending = isImageMode ? '' : input;
-        if(isImageMode){
-            const compressedImage = await imageCompression(selectedFile!, {
-                maxSizeMB: MAX_IMAGE_LENGTH,
+        
+        if(!textForSending.trim() && !selectedFile) return;
+        
+        setSending(true);
+        
+        try {
+            // 1. Ensure session keys are available
+            await ensureSessionKeys();
+            
+            // 2. Handle image upload if in image mode
+            let imageUrl: string | undefined;
+            if (isImageMode && selectedFile) {
+                imageUrl = await handleImageUpload(selectedFile);
+                if (!imageUrl) {
+                    setSending(false);
+                    return;
+                }
+            }
+            
+            // 3. Encrypt message text
+            const encryptedData = await encryptMessageText(textForSending);
+            if (!encryptedData) {
+                setSending(false);
+                return;
+            }
+            
+            // 4. Prepare message data
+            const { messageId, timestamp, replyToData, optimisticMessage } = prepareMessageData(
+                textForSending,
+                imageUrl
+            );
+            
+            // 5. Show optimistic message
+            onOptimisticMessage?.(optimisticMessage);
+            
+            // 6. Reset UI state
+            resetInputState();
+            
+            // 7. Send message to server
+            await sendMessageToServer({
+                text: encryptedData.cipherText,
+                nonce: encryptedData.nonce,
+                chatId,
+                messageId,
+                timestamp,
+                replyTo: replyToData,
+                imageUrl
+            });
+            
+        } catch (error) {
+            toast.error("Something went wrong. Please try again later");
+            console.error(error);
+        } finally {
+            setSending(false);
+        }
+    };
+    
+    // Helper: Ensure session keys exist
+    const ensureSessionKeys = async () => {
+        const isSessionKeyAvailable = hasSessionKeys(chatId);
+        if (isSessionKeyAvailable) return;
+        
+        const identityKeyResponse = await fetch(`/api/keys/identity?userId=${sessionId}`);
+        const { identityKey: ourPublicKey } = await identityKeyResponse.json();
+        
+        const partnerIdentityKeyResponse = await fetch(`/api/keys/identity?userId=${chartPartener.id}`);
+        const { identityKey: theirPublicKey } = await partnerIdentityKeyResponse.json();
+        
+        if (!ourPublicKey || !theirPublicKey) {
+            throw new Error("Encryption keys are missing. Cannot send message securely.");
+        }
+        
+        await deriveSessionKeys(ourPublicKey, theirPublicKey, sessionId, chartPartener.id, chatId);
+    };
+    
+    // Helper: Handle image compression, encryption and upload
+    const handleImageUpload = async (file: File): Promise<string | undefined> => {
+        try {
+            // Compress image
+            const compressedImage = await imageCompression(file, {
+                maxSizeMB: MAX_IMAGE_LENGTH / (1024 * 1024),
                 maxWidthOrHeight: 1920,
                 useWebWorker: true
             });
-            console.log('compressedFile instanceof Blob', compressedImage instanceof Blob);
-            console.log(`compressedFile size ${compressedImage.size / 1024 / 1024} MB`);
-
+            
+            console.log('Compressed image size:', `${(compressedImage.size / 1024 / 1024).toFixed(2)} MB`);
+            
+            // Convert to bytes
             const buffer = await compressedImage.arrayBuffer();
             const imageBytes = new Uint8Array(buffer);
+            
+            // Encrypt image
             const sessionKeys = getSessionKeys(chatId);
-            if(!sessionKeys){
-                toast.error("Session keys are missing. Cannot send image securely.")
-                return;
+            if (!sessionKeys) {
+                toast.error("Session keys are missing. Cannot send image securely.");
+                return undefined;
             }
-            await encryptImage(imageBytes);
+            
+            const encryptedImageData = await encryptImage(imageBytes);
+            
+            // Get upload URL
+            const uploadUrlResponse = await fetch('/api/upload-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chatId })
+            });
+            
+            if (!uploadUrlResponse.ok) {
+                toast.error("Failed to get upload URL. Please try again later.");
+                return undefined;
+            }
+            
+            const { uploadUrl } = await uploadUrlResponse.json();
+            
+            // Upload encrypted image
+            await fetch(uploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/octet-stream' },
+                body: Uint8Array.from(atob(encryptedImageData.encryptImage), c => c.charCodeAt(0))
+            });
+            
+            return uploadUrl.split('?')[0]; // Return the image URL without query params
+            
+        } catch (error) {
+            toast.error("Failed to upload image. Please try again later.");
+            console.error(error);
+            return undefined;
         }
-
-        if(!textForSending.trim() && !selectedFile) return 
-        setSending(true)
-        const isSessionKeyAvailable = hasSessionKeys(chatId);
-        if(!isSessionKeyAvailable) {
-            const identityKeyResponse = await fetch(`/api/keys/identity?userId=${sessionId}`);
-            const { identityKey: ourPublicKey } = await identityKeyResponse.json();
-            const partnerIdentityKeyResponse = await fetch(`/api/keys/identity?userId=${chartPartener.id}`);
-            const { identityKey: theirPublicKey } = await partnerIdentityKeyResponse.json();
-            console.log("Our Public Key: ", ourPublicKey);
-            console.log("Their Public Key: ", theirPublicKey);
-            if(!ourPublicKey || !theirPublicKey) {
-                toast.error("Encryption keys are missing. Cannot send message securely.")
-                setSending(false)
-                return;
-            }
-            try{
-                await deriveSessionKeys(ourPublicKey, theirPublicKey, sessionId, chartPartener.id, chatId);
-
-
-            } catch(error){
-                toast.error("Failed to establish secure session. Please try again later.")
-                setSending(false)
-                return;
-            }
-        }
-
+    };
+    
+    // Helper: Encrypt message text
+    const encryptMessageText = async (text: string) => {
         const tx = getSessionKeys(chatId)?.tx;
-        if(!tx){
-            toast.error("Session keys are missing. Cannot send message securely.")
-            setSending(false)
-            return;
-        };
-        const cipherText = await encryptMessage(textForSending, tx);
-        console.log("Cipher Text: ", cipherText.cipherText)
-        console.log("Nonce: ", cipherText.nonce)
+        if (!tx) {
+            toast.error("Session keys are missing. Cannot send message securely.");
+            return null;
+        }
         
-        const messageId = nanoid()
-        const timestamp = Date.now()
-
+        const cipherText = await encryptMessage(text, tx);
+        console.log("Cipher Text:", cipherText.cipherText);
+        console.log("Nonce:", cipherText.nonce);
+        
+        return cipherText;
+    };
+    
+    // Helper: Prepare message data
+    const prepareMessageData = (text: string, imageUrl?: string) => {
+        const messageId = nanoid();
+        const timestamp = Date.now();
         
         const replyToData: ReplyTo | undefined = replyingTo ? {
             id: replyingTo.id,
             senderId: replyingTo.senderId,
-            text: replyingTo.text.substring(0, 100), // Truncate long messages
+            text: replyingTo.text.substring(0, 100),
             senderName: replyingTo.senderId === sessionId ? 'You' : chartPartener.name
-        } : undefined
+        } : undefined;
         
         const optimisticMessage = {
             id: messageId,
             senderId: sessionId,
-            text: textForSending,
-
+            text,
+            imageUrl,
             timestamp,
             status: 'sending' as const,
             replyTo: replyToData
-        }
+        };
         
-        onOptimisticMessage?.(optimisticMessage)
-        
-        const messageText = cipherText.cipherText
-        
-        // Reset Logic
+        return { messageId, timestamp, replyToData, optimisticMessage };
+    };
+    
+    // Helper: Reset input state
+    const resetInputState = () => {
         setInput("");
         removeImage();
-        sendTypingIndicator(false) 
-        onCancelReply?.() 
-        textareaRef.current?.focus()
-        
-        try {
-            await axios.post('/api/message/send', {
-                text: messageText,
-                nonce: cipherText.nonce, 
-                chatId,
-                messageId,
-                timestamp,
-                replyTo: replyToData
-            })
-            
-        } catch (error) {
-            toast.error("Something went wrong. Please try again later")
-            console.log(error)
-        } finally {
-            setSending(false)
-        }
-    }
+        sendTypingIndicator(false);
+        onCancelReply?.();
+        textareaRef.current?.focus();
+    };
+    
+    // Helper: Send message to server
+    const sendMessageToServer = async (payload: any) => {
+        await axios.post('/api/message/send', payload);
+    };
 
   return (
     <div className='p-4 pb-6 mx-4 mb-2'>
