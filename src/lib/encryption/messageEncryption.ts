@@ -31,3 +31,28 @@ export async function decryptMessage(cipherText: string, rx:Uint8Array, nonce: s
     );  
     return (sodium.to_string(plainText))
 }
+
+export async function encryptImage(imageData: Uint8Array){
+    const nonceUint8 = sodium.randombytes_buf(
+        sodium.crypto_secretbox_NONCEBYTES
+    );
+
+    const fileKey = sodium.randombytes_buf(
+        sodium.crypto_secretbox_KEYBYTES
+    );
+
+    const encryptedImage = sodium.crypto_secretbox_easy(
+        imageData,
+        nonceUint8,
+        fileKey
+    );
+
+    return {
+        encryptImage: sodium.to_base64(encryptedImage),
+        fileKey: sodium.to_base64(fileKey),
+        nonce: sodium.to_base64(nonceUint8)
+    }
+
+
+
+}

@@ -12,8 +12,8 @@ import { cn } from '@/lib/utils';
 import { getSessionKeys, hasSessionKeys } from '@/lib/sessionKeys';
 import { deriveSessionKeys } from '@/lib/encryption/keys';
 import { useSession } from 'next-auth/react';
-import { encryptMessage } from '@/lib/encryption/messageEncryption';
-
+import { encryptImage, encryptMessage } from '@/lib/encryption/messageEncryption';
+import imageCompression from "browser-image-compression";
 interface ChatInputProps {
     chartPartener : User
     chatId: string
@@ -129,6 +129,24 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
     const sendMessage = async () => {
         const isImageMode = !!selectedFile;
         const textForSending = isImageMode ? '' : input;
+        if(isImageMode){
+            const compressedImage = await imageCompression(selectedFile!, {
+                maxSizeMB: MAX_IMAGE_LENGTH,
+                maxWidthOrHeight: 1920,
+                useWebWorker: true
+            });
+            console.log('compressedFile instanceof Blob', compressedImage instanceof Blob);
+            console.log(`compressedFile size ${compressedImage.size / 1024 / 1024} MB`);
+
+            const buffer = await compressedImage.arrayBuffer();
+            const imageBytes = new Uint8Array(buffer);
+            const sessionKeys = getSessionKeys(chatId);
+            if(!sessionKeys){
+                toast.error("Session keys are missing. Cannot send image securely.")
+                return;
+            }
+            await encryptImage(imageBytes);
+        }
 
         if(!textForSending.trim() && !selectedFile) return 
         setSending(true)
