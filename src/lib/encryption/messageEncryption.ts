@@ -1,15 +1,16 @@
 import { initSodium } from "../utils"
+import { ImageMessagePayload } from "../validations/message";
 
 const sodium = await initSodium();
 
-export async function encryptMessage(message: string, tx:Uint8Array){
+export async function encryptData(data: string | ImageMessagePayload, tx:Uint8Array){
     
     const nonce = sodium.randombytes_buf(
         sodium.crypto_secretbox_NONCEBYTES
     );
 
     const cipherText = sodium.crypto_secretbox_easy(
-        sodium.from_string(message),
+        typeof data === "string" ? sodium.from_string(data) : sodium.from_string(JSON.stringify(data)),
         nonce,
         tx
     )
@@ -48,11 +49,25 @@ export async function encryptImage(imageData: Uint8Array){
     );
 
     return {
-        encryptImage: sodium.to_base64(encryptedImage),
+        encryptedImage: sodium.to_base64(encryptedImage),
         fileKey: sodium.to_base64(fileKey),
         nonce: sodium.to_base64(nonceUint8)
     }
 
 
 
+}
+
+export async function decryptImage(encryptedImage: string, fileKey: string, nonce: string){
+    const nonceUint8 = sodium.from_base64(nonce);
+    const fileKeyUint8 = sodium.from_base64(fileKey);
+    const encryptedImageUint8 = sodium.from_base64(encryptedImage);
+
+    const decryptedImage = sodium.crypto_secretbox_open_easy(
+        encryptedImageUint8,
+        nonceUint8,
+        fileKeyUint8
+    );
+
+    return decryptedImage;
 }

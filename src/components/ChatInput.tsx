@@ -7,12 +7,12 @@ import Button from './ui/Button';
 import axios, { get } from 'axios';
 import toast from 'react-hot-toast';
 import { nanoid } from 'nanoid';
-import { allowedImageTypes, MAX_IMAGE_LENGTH, Message, ReplyTo } from '@/lib/validations/message';
+import { allowedImageTypes, ImageMessagePayload, MAX_IMAGE_LENGTH, Message, ReplyTo } from '@/lib/validations/message';
 import { cn } from '@/lib/utils';
 import { getSessionKeys, hasSessionKeys } from '@/lib/sessionKeys';
 import { deriveSessionKeys } from '@/lib/encryption/keys';
 import { useSession } from 'next-auth/react';
-import { encryptImage, encryptMessage } from '@/lib/encryption/messageEncryption';
+import { encryptImage, encryptData } from '@/lib/encryption/messageEncryption';
 import imageCompression from "browser-image-compression";
 interface ChatInputProps {
     chartPartener : User
@@ -127,7 +127,6 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
     }, [replyingTo])
     
     const sendMessage = async () => {
-        // Validate input
         const isImageMode = !!selectedFile;
         const textForSending = isImageMode ? '' : input;
         
@@ -136,10 +135,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         setSending(true);
         
         try {
-            // 1. Ensure session keys are available
             await ensureSessionKeys();
             
-            // 2. Handle image upload if in image mode
             let imageUrl: string | undefined;
             if (isImageMode && selectedFile) {
                 imageUrl = await handleImageUpload(selectedFile);
@@ -149,26 +146,20 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
                 }
             }
             
-            // 3. Encrypt message text
             const encryptedData = await encryptMessageText(textForSending);
             if (!encryptedData) {
                 setSending(false);
                 return;
             }
             
-            // 4. Prepare message data
             const { messageId, timestamp, replyToData, optimisticMessage } = prepareMessageData(
                 textForSending,
                 imageUrl
             );
             
-            // 5. Show optimistic message
             onOptimisticMessage?.(optimisticMessage);
             
-            // 6. Reset UI state
             resetInputState();
-            
-            // 7. Send message to server
             await sendMessageToServer({
                 text: encryptedData.cipherText,
                 nonce: encryptedData.nonce,
@@ -186,8 +177,6 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             setSending(false);
         }
     };
-    
-    // Helper: Ensure session keys exist
     const ensureSessionKeys = async () => {
         const isSessionKeyAvailable = hasSessionKeys(chatId);
         if (isSessionKeyAvailable) return;
@@ -204,11 +193,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         await deriveSessionKeys(ourPublicKey, theirPublicKey, sessionId, chartPartener.id, chatId);
     };
-    
-    // Helper: Handle image compression, encryption and upload
     const handleImageUpload = async (file: File): Promise<string | undefined> => {
         try {
-            // Compress image
             const compressedImage = await imageCompression(file, {
                 maxSizeMB: MAX_IMAGE_LENGTH / (1024 * 1024),
                 maxWidthOrHeight: 1920,
@@ -216,12 +202,9 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             });
             
             console.log('Compressed image size:', `${(compressedImage.size / 1024 / 1024).toFixed(2)} MB`);
-            
-            // Convert to bytes
             const buffer = await compressedImage.arrayBuffer();
             const imageBytes = new Uint8Array(buffer);
             
-            // Encrypt image
             const sessionKeys = getSessionKeys(chatId);
             if (!sessionKeys) {
                 toast.error("Session keys are missing. Cannot send image securely.");
@@ -230,7 +213,6 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             
             const encryptedImageData = await encryptImage(imageBytes);
             
-            // Get upload URL
             const uploadUrlResponse = await fetch('/api/upload-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -244,23 +226,34 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             
             const { uploadUrl } = await uploadUrlResponse.json();
             
-            // Upload encrypted image
             await fetch(uploadUrl, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/octet-stream' },
-                body: Uint8Array.from(atob(encryptedImageData.encryptImage), c => c.charCodeAt(0))
+                body: Uint8Array.from(atob(encryptedImageData.encryptedImage), c => c.charCodeAt(0))
             });
             
-            return uploadUrl.split('?')[0]; // Return the image URL without query params
+            const imagePayload: ImageMessagePayload = {
+            type: "image",
+            url: uploadUrl.split('?')[0],
+            nonce: encryptedImageData.nonce,
+            fileKey: encryptedImageData.fileKey,
+            size: file.size
+        };
+            const encryptedImageMessage = await encryptData(imagePayload, sessionKeys.tx);
+            
+            console.log("Encrypted Image Message:", encryptedImageMessage.cipherText);
+            console.log("Nonce for Image Message:", encryptedImageMessage.nonce);
+            
+            return uploadUrl.split('?')[0];
             
         } catch (error) {
             toast.error("Failed to upload image. Please try again later.");
             console.error(error);
             return undefined;
         }
+        
     };
     
-    // Helper: Encrypt message text
     const encryptMessageText = async (text: string) => {
         const tx = getSessionKeys(chatId)?.tx;
         if (!tx) {
@@ -268,14 +261,13 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             return null;
         }
         
-        const cipherText = await encryptMessage(text, tx);
+        const cipherText = await encryptData(text, tx);
         console.log("Cipher Text:", cipherText.cipherText);
         console.log("Nonce:", cipherText.nonce);
         
         return cipherText;
     };
     
-    // Helper: Prepare message data
     const prepareMessageData = (text: string, imageUrl?: string) => {
         const messageId = nanoid();
         const timestamp = Date.now();
@@ -300,7 +292,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         return { messageId, timestamp, replyToData, optimisticMessage };
     };
     
-    // Helper: Reset input state
+    
     const resetInputState = () => {
         setInput("");
         removeImage();
@@ -308,8 +300,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         onCancelReply?.();
         textareaRef.current?.focus();
     };
-    
-    // Helper: Send message to server
+
     const sendMessageToServer = async (payload: any) => {
         await axios.post('/api/message/send', payload);
     };

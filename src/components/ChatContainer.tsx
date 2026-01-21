@@ -34,6 +34,7 @@ const ChatContainer: FC<ChatContainerProps> = ({
     const [isPartnerTyping, setIsPartnerTyping] = useState(false)
     const [keysReady, setKeysReady] = useState(false)
     const [isDecrypting, setIsDecrypting] = useState(true)
+    
 
     const addOptimisticMessage = useCallback((message: Message) => {
         setMessages((prev) => [{ ...message, isOptimistic: true } as Message, ...prev])
@@ -79,8 +80,10 @@ const ChatContainer: FC<ChatContainerProps> = ({
             }
 
             const decryptedMessages = await Promise.all(
+
                 initialMessages.map(async (message) => {
                     // Only decrypt messages from the partner that have a nonce
+
                     if (message.senderId !== sessionId && message.nonce) {
                         try {
                             const decryptedText = await decryptMessage(message.text, sessionKeys.rx, message.nonce);
