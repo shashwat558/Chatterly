@@ -138,12 +138,15 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             await ensureSessionKeys();
             
             let imageUrl: string | undefined;
+            let optimisticImagePayload: ImageMessagePayload | undefined;
             if (isImageMode && selectedFile) {
-                imageUrl = await handleImageUpload(selectedFile);
-                if (!imageUrl) {
+                const uploadResult = await handleImageUpload(selectedFile);
+                if (!uploadResult) {
                     setSending(false);
                     return;
                 }
+                imageUrl = uploadResult.imageUrl;
+                optimisticImagePayload = uploadResult.imagePayload;
             }
             
             const encryptedData = await encryptMessageText(textForSending);
@@ -154,7 +157,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             
             const { messageId, timestamp, replyToData, optimisticMessage } = prepareMessageData(
                 textForSending,
-                imageUrl
+                imageUrl,
+                optimisticImagePayload
             );
             
             onOptimisticMessage?.(optimisticMessage);
@@ -193,7 +197,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         await deriveSessionKeys(ourPublicKey, theirPublicKey, sessionId, chartPartener.id, chatId);
     };
-    const handleImageUpload = async (file: File): Promise<string | undefined> => {
+    const handleImageUpload = async (file: File): Promise<{ imageUrl: string; imagePayload: ImageMessagePayload } | undefined> => {
         try {
             const compressedImage = await imageCompression(file, {
                 maxSizeMB: MAX_IMAGE_LENGTH / (1024 * 1024),
@@ -224,7 +228,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
                 return undefined;
             }
             
-            const { uploadUrl } = await uploadUrlResponse.json();
+            const { uploadUrl, objectKey } = await uploadUrlResponse.json();
+            
             
             await fetch(uploadUrl, {
                 method: 'PUT',
@@ -233,18 +238,19 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             });
             
             const imagePayload: ImageMessagePayload = {
-            type: "image",
-            url: uploadUrl.split('?')[0],
-            nonce: encryptedImageData.nonce,
-            fileKey: encryptedImageData.fileKey,
-            size: file.size
-        };
+                type: "image",
+                url: uploadUrl.split('?')[0],
+                nonce: encryptedImageData.nonce,
+                fileKey: encryptedImageData.fileKey,
+                size: file.size,
+                objectKey
+            };
             const encryptedImageMessage = await encryptData(imagePayload, sessionKeys.tx);
             
             console.log("Encrypted Image Message:", encryptedImageMessage.cipherText);
             console.log("Nonce for Image Message:", encryptedImageMessage.nonce);
             
-            return uploadUrl.split('?')[0];
+            return { imageUrl: uploadUrl.split('?')[0], imagePayload };
             
         } catch (error) {
             toast.error("Failed to upload image. Please try again later.");
@@ -268,7 +274,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         return cipherText;
     };
     
-    const prepareMessageData = (text: string, imageUrl?: string) => {
+    const prepareMessageData = (text: string, imageUrl?: string, imagePayload?: ImageMessagePayload) => {
         const messageId = nanoid();
         const timestamp = Date.now();
         
@@ -284,6 +290,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             senderId: sessionId,
             text,
             imageUrl,
+            imagePayload,
             timestamp,
             status: 'sending' as const,
             replyTo: replyToData

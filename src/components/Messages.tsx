@@ -2,6 +2,7 @@
 
 import { cn, toPusherKey } from '@/lib/utils'
 import { Message } from '@/lib/validations/message'
+
 import React, { FC, useEffect, useRef, useState } from 'react'
 import { format, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns';
 import Image from 'next/image';
@@ -9,6 +10,7 @@ import { Bookmark, Smile, Check, CheckCheck, Clock, Forward, X, Reply, MessageCi
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { pusherClient } from '@/lib/pusher';
+import DecryptedImage from './DecryptedImage';
 
 // Silence status types
 type SilenceStatus = 'no_reply_needed' | 'waiting_for_info' | 'will_reply_later'
@@ -482,7 +484,11 @@ const Messages:FC<MessagesProps> = ({
                               'rounded-bl-sm': !hasNextMessageFromSameUser && !isCurrentUser && !message.replyTo,
                               'opacity-70': message.status === 'sending'
                             })}>
-                              {message.text}{' '}
+                              {message.imagePayload ? (
+                                <DecryptedImage payload={message.imagePayload} chatId={chatId} />
+                              ) : (
+                                <span>{message.text}</span>
+                              )}
                               <span className={cn('ml-2 text-[10px] align-bottom inline-flex items-center gap-0.5', {
                                 'text-sky-100': isCurrentUser,
                                 'text-slate-400': !isCurrentUser

@@ -85,7 +85,15 @@ const ChatContainer: FC<ChatContainerProps> = ({
                     if (message.senderId !== sessionId && message.nonce) {
                         try {
                             const decryptedText = await decryptMessage(message.text, sessionKeys.rx, message.nonce);
-                            
+                            try {
+                                const parsed = JSON.parse(decryptedText);
+                                if(parsed && parsed.type === "image"){
+                                    return {...message, imagePayload: parsed, text: "", imagePayloadNonce: message.nonce }
+                                }
+                            } catch (error) {
+                                console.log("Not an image payload");
+                            }
+
                             return { ...message, text: decryptedText };
                         } catch (error) {
                             console.error("Failed to decrypt message:", message.id, error);
@@ -126,7 +134,16 @@ const ChatContainer: FC<ChatContainerProps> = ({
                 if(sessionKeys){
                     try {
                         const decryptedText = await decryptMessage(message.text, sessionKeys.rx, message.nonce);
-                        decryptedMessage = {...message, text: decryptedText}
+                        try {
+                            const parsed = JSON.parse(decryptedText);
+                            if (parsed && parsed.type === 'image') {
+                                decryptedMessage = { ...message, imagePayload: parsed, text: '', imagePayloadNonce: message.nonce }
+                            } else {
+                                decryptedMessage = { ...message, text: decryptedText }
+                            }
+                        } catch {
+                            decryptedMessage = { ...message, text: decryptedText }
+                        }
                     } catch (error) {
                         console.error("Failed to decrypt message", error);
                         decryptedMessage = {...message, text: "[Unable to decrypt message]"}

@@ -17,7 +17,8 @@ export const imageMessagePayload = z.object({
     url: z.string().url(),
     nonce: z.string(),
     fileKey: z.string(),
-    size: z.number()
+    size: z.number(),
+    objectKey: z.string().optional()
 })
 
 export const messageValidator = z.object({

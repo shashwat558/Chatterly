@@ -47,9 +47,11 @@ export async function encryptImage(imageData: Uint8Array){
         nonceUint8,
         fileKey
     );
+    
+    console.log("Encrypted image size:", encryptedImage.length);
 
     return {
-        encryptedImage: sodium.to_base64(encryptedImage),
+        encryptedImage: sodium.to_base64(encryptedImage, sodium.base64_variants.ORIGINAL),
         fileKey: sodium.to_base64(fileKey),
         nonce: sodium.to_base64(nonceUint8)
     }
@@ -61,13 +63,13 @@ export async function encryptImage(imageData: Uint8Array){
 export async function decryptImage(encryptedImage: string, fileKey: string, nonce: string){
     const nonceUint8 = sodium.from_base64(nonce);
     const fileKeyUint8 = sodium.from_base64(fileKey);
-    const encryptedImageUint8 = sodium.from_base64(encryptedImage);
+    const encryptedImageUint8 = sodium.from_base64(encryptedImage , sodium.base64_variants.ORIGINAL);
 
     const decryptedImage = sodium.crypto_secretbox_open_easy(
         encryptedImageUint8,
         nonceUint8,
         fileKeyUint8
     );
-
+    console.log("Decrypted image size:", decryptedImage.length);
     return decryptedImage;
 }
