@@ -82,7 +82,7 @@ const Messages:FC<MessagesProps> = ({
     friends = [],
     onReply
 }) => {
-     const  [messages, setMessages] = useState<Message[]>(initialMessages)
+     const [messages, setMessages] = useState<Message[]>(initialMessages)
      const [activePopover, setActivePopover] = useState<string | null>(null)
      const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set())
      const [forwardingMessage, setForwardingMessage] = useState<Message | null>(null)
@@ -91,12 +91,10 @@ const Messages:FC<MessagesProps> = ({
      const [silenceStatuses, setSilenceStatuses] = useState<Record<string, SilenceData>>({})
      const [activeSilencePopover, setActiveSilencePopover] = useState<string | null>(null)
 
-     // Update messages when initialMessages changes (for optimistic updates from parent)
      useEffect(() => {
        setMessages(initialMessages)
      }, [initialMessages])
 
-     // Fetch bookmarks on mount
      useEffect(() => {
        const fetchBookmarks = async () => {
          try {

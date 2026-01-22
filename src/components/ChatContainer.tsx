@@ -34,7 +34,7 @@ const ChatContainer: FC<ChatContainerProps> = ({
     const [isPartnerTyping, setIsPartnerTyping] = useState(false)
     const [keysReady, setKeysReady] = useState(false)
     const [isDecrypting, setIsDecrypting] = useState(true)
-    
+    const [isImageUrl, setIsImageUrl] = useState(false);
 
     const addOptimisticMessage = useCallback((message: Message) => {
         setMessages((prev) => [{ ...message, isOptimistic: true } as Message, ...prev])
@@ -67,7 +67,6 @@ const ChatContainer: FC<ChatContainerProps> = ({
         deriveKeys();
     }, [chatId, chatPartner.id, sessionId])
 
-    // Decrypt initial messages once keys are ready
     useEffect(() => {
         const decryptInitialMessages = async () => {
             if (!keysReady) return;
@@ -80,23 +79,23 @@ const ChatContainer: FC<ChatContainerProps> = ({
             }
 
             const decryptedMessages = await Promise.all(
-
+                
                 initialMessages.map(async (message) => {
-                    // Only decrypt messages from the partner that have a nonce
-
+                    
                     if (message.senderId !== sessionId && message.nonce) {
                         try {
                             const decryptedText = await decryptMessage(message.text, sessionKeys.rx, message.nonce);
+                            
                             return { ...message, text: decryptedText };
                         } catch (error) {
                             console.error("Failed to decrypt message:", message.id, error);
                             return { ...message, text: "[Unable to decrypt message]" };
                         }
                     }
-                    // Decrypt our own messages using tx key
                     if (message.senderId === sessionId && message.nonce) {
                         try {
                             const decryptedText = await decryptMessage(message.text, sessionKeys.tx, message.nonce);
+
                             return { ...message, text: decryptedText };
                         } catch (error) {
                             console.error("Failed to decrypt own message:", message.id, error);
