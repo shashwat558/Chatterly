@@ -78,7 +78,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
     };
 
     const sendTypingIndicator = useCallback(async (isTyping: boolean) => {
-        if (isTypingRef.current === isTyping) return // Avoid duplicate calls
+        if (isTypingRef.current === isTyping) return
         isTypingRef.current = isTyping
         
         try {
@@ -90,7 +90,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
 
     
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        if (selectedFile) return; // image mode disables typing
+        if (selectedFile) return;
         setInput(e.target.value)
         
         if (e.target.value.trim()) {
@@ -329,7 +329,6 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             accept={allowedImageTypes.join(', ')}
         />
 
-        {/* Reply Preview */}
         {replyingTo && (
             <div className='mb-2 animate-in slide-in-from-bottom-2 duration-200'>
                 <div className='flex items-center gap-2 bg-white/70 backdrop-blur-sm rounded-t-2xl rounded-b-lg px-4 py-3 border border-white/60 border-b-0 shadow-sm'>
@@ -351,7 +350,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             </div>
         )}
 
-        {/* Image Preview */}
+
         {imagePreview && (
              <div className='mb-3 animate-in slide-in-from-bottom-2 duration-200'>
                 <div className='relative w-full max-w-xl group mx-auto'>

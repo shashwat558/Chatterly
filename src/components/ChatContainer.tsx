@@ -81,7 +81,6 @@ const ChatContainer: FC<ChatContainerProps> = ({
             const decryptedMessages = await Promise.all(
                 
                 initialMessages.map(async (message) => {
-                    // If message already has imagePayload, preserve it (image messages from DB)
                     if (message.imagePayload) {
                         return message;
                     }
@@ -107,6 +106,14 @@ const ChatContainer: FC<ChatContainerProps> = ({
                     if (message.senderId === sessionId && message.nonce) {
                         try {
                             const decryptedText = await decryptMessage(message.text, sessionKeys.tx, message.nonce);
+                            try {
+                                const parsed = JSON.parse(decryptedText);
+                                if(parsed && parsed.type === "image"){
+                                    return {...message, imagePayload: parsed, text: "", imagePayloadNonce: message.nonce }
+                                }
+                            } catch (error) {
+                                console.log("Not an image payload");
+                            }
 
                             return { ...message, text: decryptedText };
                         } catch (error) {
@@ -209,7 +216,6 @@ const ChatContainer: FC<ChatContainerProps> = ({
         <>
             {isDecrypting ? (
                 <div className='flex-1 flex flex-col-reverse gap-4 p-4 overflow-y-auto'>
-                    {/* Message Skeleton */}
                     {[...Array(5)].map((_, i) => (
                         <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
                             <div className={`flex items-end gap-2 ${i % 2 === 0 ? 'flex-row-reverse' : ''}`}>
@@ -234,7 +240,6 @@ const ChatContainer: FC<ChatContainerProps> = ({
                 />
             )}
             
-            {/* Typing Indicator */}
             {isPartnerTyping && (
                 <div className='px-8 pb-2'>
                     <div className='inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-white/50 animate-in fade-in slide-in-from-bottom-2 duration-300'>

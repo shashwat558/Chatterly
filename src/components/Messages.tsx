@@ -12,7 +12,6 @@ import toast from 'react-hot-toast';
 import { pusherClient } from '@/lib/pusher';
 import DecryptedImage from './DecryptedImage';
 
-// Silence status types
 type SilenceStatus = 'no_reply_needed' | 'waiting_for_info' | 'will_reply_later'
 type SilenceData = { status: SilenceStatus; expiresAt: number; userName?: string }
 
@@ -34,7 +33,6 @@ interface MessagesProps {
 
 const REACTION_OPTIONS = ["👍", "❤️", "😊", "🙏", "✅"]
 
-// Status tick component
 const MessageStatus: FC<{ status?: string; isCurrentUser: boolean }> = ({ status, isCurrentUser }) => {
     if (!isCurrentUser) return null
     
@@ -497,8 +495,7 @@ const Messages:FC<MessagesProps> = ({
                                 <MessageStatus status={message.status} isCurrentUser={isCurrentUser} />
                               </span>
                             </div>
-                            
-                            {/* Reactions Display */}
+
                             {flatReactions.length > 0 && (
                                 <div className={cn('flex flex-wrap gap-1 mt-1', {
                                     'justify-end': isCurrentUser,
@@ -526,12 +523,10 @@ const Messages:FC<MessagesProps> = ({
                               </div>
                             )}
 
-                             {/* Reaction Trigger Button - Below Message */}
                              <div className={cn('opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 relative', {
                                  'justify-end': isCurrentUser,
                                  'justify-start': !isCurrentUser
                              })}>
-                                 {/* Reply Button */}
                                  <button 
                                     onClick={() => onReply?.(message)}
                                     className='p-1.5 rounded-full bg-white/40 hover:bg-white/60 text-slate-500 hover:text-sky-500 transition-all'>
@@ -544,7 +539,6 @@ const Messages:FC<MessagesProps> = ({
                                      <Smile className='w-4 h-4' />
                                  </button>
 
-                                 {/* Bookmark Button */}
                                  <button 
                                     onClick={() => toggleBookmark(message)}
                                     className={cn('p-1.5 rounded-full transition-all', {
@@ -556,7 +550,6 @@ const Messages:FC<MessagesProps> = ({
                                      })} />
                                  </button>
 
-                                 {/* Forward Button */}
                                  {friends.length > 0 && (
                                    <button 
                                       onClick={() => openForwardModal(message)}
@@ -565,7 +558,6 @@ const Messages:FC<MessagesProps> = ({
                                    </button>
                                  )}
                                  
-                                 {/* Silence Button - Only for received messages */}
                                  {!isCurrentUser && (
                                    <button 
                                       onClick={() => setActiveSilencePopover(activeSilencePopover === message.id ? null : message.id)}
@@ -574,7 +566,6 @@ const Messages:FC<MessagesProps> = ({
                                    </button>
                                  )}
 
-                                 {/* Reaction Popover */}
                                  {activePopover === message.id && (
                                     <div className='bg-white/90 backdrop-blur-md p-1.5 rounded-full shadow-lg border border-white/50 flex gap-1 animate-in zoom-in-50 duration-200 z-20'>
                                         {REACTION_OPTIONS.map(opt => (
@@ -589,7 +580,6 @@ const Messages:FC<MessagesProps> = ({
                                     </div>
                                  )}
 
-                                 {/* Silence Status Popover - Only for received messages */}
                                  {!isCurrentUser && activeSilencePopover === message.id && (
                                     <div className='absolute bottom-full mb-2 left-0 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-lg border border-white/50 flex flex-col gap-1 animate-in zoom-in-50 duration-200 z-30 min-w-[180px]'>
                                         <p className='text-[10px] text-slate-400 px-2 mb-1 uppercase tracking-wider'>Explain your silence</p>
@@ -612,7 +602,6 @@ const Messages:FC<MessagesProps> = ({
                              </div>
                           </div>
                           
-                          {/* Avatar */}
                           <div className={cn('relative h-8 w-8', {
                               'order-2': isCurrentUser,
                               'order-1': !isCurrentUser,
@@ -649,11 +638,10 @@ const Messages:FC<MessagesProps> = ({
           )
         })}
 
-        {/* Forward Modal */}
+
         {forwardingMessage && (
           <div className='fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4' onClick={closeForwardModal}>
             <div className='bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200' onClick={e => e.stopPropagation()}>
-              {/* Modal Header */}
               <div className='flex items-center justify-between p-5 border-b border-slate-100'>
                 <h3 className='text-lg font-semibold text-slate-800'>Forward Message</h3>
                 <button onClick={closeForwardModal} className='p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors'>
@@ -661,7 +649,6 @@ const Messages:FC<MessagesProps> = ({
                 </button>
               </div>
 
-              {/* Message Preview */}
               <div className='px-5 py-4 bg-sky-50/50'>
                 <p className='text-sm text-slate-500 mb-2'>Message:</p>
                 <p className='text-slate-700 bg-white/80 px-4 py-3 rounded-2xl border border-white/60 shadow-sm line-clamp-3'>
@@ -669,7 +656,6 @@ const Messages:FC<MessagesProps> = ({
                 </p>
               </div>
 
-              {/* Friends List */}
               <div className='p-5'>
                 <p className='text-sm font-medium text-slate-600 mb-3'>Select friends to forward to:</p>
                 <div className='space-y-2 max-h-64 overflow-y-auto'>
@@ -712,7 +698,6 @@ const Messages:FC<MessagesProps> = ({
                 </div>
               </div>
 
-              {/* Modal Footer */}
               <div className='p-5 border-t border-slate-100 flex gap-3'>
                 <button
                   onClick={closeForwardModal}

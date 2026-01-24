@@ -31,11 +31,9 @@ const DecryptedImage = ({ payload, chatId }: DecryptedImageProps) => {
                 setLoading(true);
                 setError(null);
 
-                // Check if objectKey exists, otherwise fall back to direct URL
                 let downloadUrl = payload.url;
                 
                 if (payload.objectKey) {
-                    // Fetch signed download URL from API
                     const response = await fetch('/api/downlaod-url', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -50,14 +48,12 @@ const DecryptedImage = ({ payload, chatId }: DecryptedImageProps) => {
                     downloadUrl = data.downloadUrl;
                 }
 
-                // Fetch encrypted image
                 const imageResponse = await fetch(downloadUrl);
                 if (!imageResponse.ok) throw new Error('Failed to fetch encrypted image');
                 
                 const buffer = await imageResponse.arrayBuffer();
                 const base64Encrypted = uint8ToBase64(new Uint8Array(buffer));
 
-                // Decrypt image
                 const decryptedBytes = await decryptImage(base64Encrypted, payload.fileKey, payload.nonce);
                 const uint8 = new Uint8Array(decryptedBytes);
                 const blob = new Blob([uint8], { type: 'image/*' });
