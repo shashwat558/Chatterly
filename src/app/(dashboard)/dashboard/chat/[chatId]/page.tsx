@@ -8,6 +8,7 @@ import { getServerSession } from 'next-auth';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import React, { FC } from 'react'
+import { Video } from 'lucide-react';
 
 interface PageProps {
   params: {
@@ -101,6 +102,20 @@ const page = async ({params}: {params: Promise<{chatId: string}>}) => {
                 </div>
                 <span className='text-xs text-slate-400 max-w-xs truncate font-medium'>{chatPartener.email}</span>
               </div>
+            </div>
+            <div className='flex items-center gap-3'>
+              <button
+                type='button'
+                className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500 text-white text-sm font-semibold shadow-md hover:bg-sky-600 active:scale-[0.99] transition'
+                // onClick={() => {
+                //   // Placeholder action for future video call hook
+                //   console.log('Start video call')
+                // }}
+                aria-label='Start video call'
+              >
+                <Video className='w-4 h-4' />
+                Start call
+              </button>
             </div>
           </div>
       </div>
