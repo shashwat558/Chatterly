@@ -8,7 +8,8 @@ import { getServerSession } from 'next-auth';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import React, { FC } from 'react'
-import { Video } from 'lucide-react';
+import { VideoCameraIcon } from '@heroicons/react/24/outline';
+
 
 interface PageProps {
   params: {
@@ -113,8 +114,8 @@ const page = async ({params}: {params: Promise<{chatId: string}>}) => {
                 // }}
                 aria-label='Start video call'
               >
-                <Video className='w-4 h-4' />
-                Start call
+                <VideoCameraIcon className='w-6 h-6' />
+                
               </button>
             </div>
           </div>
