@@ -139,6 +139,8 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             
             let imageUrl: string | undefined;
             let optimisticImagePayload: ImageMessagePayload | undefined;
+            let encryptedData: { cipherText: string; nonce: string } | null = null;
+            
             if (isImageMode && selectedFile) {
                 const uploadResult = await handleImageUpload(selectedFile);
                 if (!uploadResult) {
@@ -147,12 +149,13 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
                 }
                 imageUrl = uploadResult.imageUrl;
                 optimisticImagePayload = uploadResult.imagePayload;
-            }
-            
-            const encryptedData = await encryptMessageText(textForSending);
-            if (!encryptedData) {
-                setSending(false);
-                return;
+                encryptedData = uploadResult.encryptedPayload;
+            } else {
+                encryptedData = await encryptMessageText(textForSending);
+                if (!encryptedData) {
+                    setSending(false);
+                    return;
+                }
             }
             
             const { messageId, timestamp, replyToData, optimisticMessage } = prepareMessageData(
@@ -197,7 +200,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
         
         await deriveSessionKeys(ourPublicKey, theirPublicKey, sessionId, chartPartener.id, chatId);
     };
-    const handleImageUpload = async (file: File): Promise<{ imageUrl: string; imagePayload: ImageMessagePayload } | undefined> => {
+    const handleImageUpload = async (file: File): Promise<{ imageUrl: string; imagePayload: ImageMessagePayload; encryptedPayload: { cipherText: string; nonce: string } } | undefined> => {
         try {
             const compressedImage = await imageCompression(file, {
                 maxSizeMB: MAX_IMAGE_LENGTH / (1024 * 1024),
@@ -250,7 +253,11 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
             console.log("Encrypted Image Message:", encryptedImageMessage.cipherText);
             console.log("Nonce for Image Message:", encryptedImageMessage.nonce);
             
-            return { imageUrl: uploadUrl.split('?')[0], imagePayload };
+            return { 
+                imageUrl: uploadUrl.split('?')[0], 
+                imagePayload, 
+                encryptedPayload: encryptedImageMessage 
+            };
             
         } catch (error) {
             toast.error("Failed to upload image. Please try again later.");

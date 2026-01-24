@@ -81,6 +81,10 @@ const ChatContainer: FC<ChatContainerProps> = ({
             const decryptedMessages = await Promise.all(
                 
                 initialMessages.map(async (message) => {
+                    // If message already has imagePayload, preserve it (image messages from DB)
+                    if (message.imagePayload) {
+                        return message;
+                    }
                     
                     if (message.senderId !== sessionId && message.nonce) {
                         try {
