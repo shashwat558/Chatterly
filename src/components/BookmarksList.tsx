@@ -76,7 +76,6 @@ const BookmarksList: FC<BookmarksListProps> = ({ initialBookmarks, sessionId }) 
             key={bookmark.messageId}
             className='group flex items-start gap-4 p-4 bg-white/60 backdrop-blur-sm border border-white/50 rounded-2xl hover:bg-white hover:shadow-md transition-all duration-300'
           >
-            {/* Avatar */}
             {bookmark.senderImage && (
               <div className='relative h-10 w-10 shrink-0'>
                 <Image
@@ -89,7 +88,6 @@ const BookmarksList: FC<BookmarksListProps> = ({ initialBookmarks, sessionId }) 
               </div>
             )}
 
-            {/* Content */}
             <div className='flex-1 min-w-0'>
               <div className='flex items-center gap-2 mb-1'>
                 <span className='font-semibold text-slate-800 text-sm'>
@@ -110,7 +108,6 @@ const BookmarksList: FC<BookmarksListProps> = ({ initialBookmarks, sessionId }) 
               </Link>
             </div>
 
-            {/* Remove Button */}
             <button
               onClick={() => removeBookmark(bookmark)}
               className='opacity-0 group-hover:opacity-100 p-1.5 rounded-full bg-slate-100 hover:bg-red-100 text-slate-400 hover:text-red-500 transition-all shrink-0'

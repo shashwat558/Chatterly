@@ -34,6 +34,7 @@ const ChatContainer: FC<ChatContainerProps> = ({
     const [isPartnerTyping, setIsPartnerTyping] = useState(false)
     const [keysReady, setKeysReady] = useState(false)
     const [isDecrypting, setIsDecrypting] = useState(true)
+    const [isImageUrl, setIsImageUrl] = useState(false);
 
     const addOptimisticMessage = useCallback((message: Message) => {
         setMessages((prev) => [{ ...message, isOptimistic: true } as Message, ...prev])
@@ -66,7 +67,6 @@ const ChatContainer: FC<ChatContainerProps> = ({
         deriveKeys();
     }, [chatId, chatPartner.id, sessionId])
 
-    // Decrypt initial messages once keys are ready
     useEffect(() => {
         const decryptInitialMessages = async () => {
             if (!keysReady) return;
@@ -79,21 +79,42 @@ const ChatContainer: FC<ChatContainerProps> = ({
             }
 
             const decryptedMessages = await Promise.all(
+                
                 initialMessages.map(async (message) => {
-                    // Only decrypt messages from the partner that have a nonce
+                    if (message.imagePayload) {
+                        return message;
+                    }
+                    
                     if (message.senderId !== sessionId && message.nonce) {
                         try {
                             const decryptedText = await decryptMessage(message.text, sessionKeys.rx, message.nonce);
+                            try {
+                                const parsed = JSON.parse(decryptedText);
+                                if(parsed && parsed.type === "image"){
+                                    return {...message, imagePayload: parsed, text: "", imagePayloadNonce: message.nonce }
+                                }
+                            } catch (error) {
+                                console.log("Not an image payload");
+                            }
+
                             return { ...message, text: decryptedText };
                         } catch (error) {
                             console.error("Failed to decrypt message:", message.id, error);
                             return { ...message, text: "[Unable to decrypt message]" };
                         }
                     }
-                    // Decrypt our own messages using tx key
                     if (message.senderId === sessionId && message.nonce) {
                         try {
                             const decryptedText = await decryptMessage(message.text, sessionKeys.tx, message.nonce);
+                            try {
+                                const parsed = JSON.parse(decryptedText);
+                                if(parsed && parsed.type === "image"){
+                                    return {...message, imagePayload: parsed, text: "", imagePayloadNonce: message.nonce }
+                                }
+                            } catch (error) {
+                                console.log("Not an image payload");
+                            }
+
                             return { ...message, text: decryptedText };
                         } catch (error) {
                             console.error("Failed to decrypt own message:", message.id, error);
@@ -124,7 +145,16 @@ const ChatContainer: FC<ChatContainerProps> = ({
                 if(sessionKeys){
                     try {
                         const decryptedText = await decryptMessage(message.text, sessionKeys.rx, message.nonce);
-                        decryptedMessage = {...message, text: decryptedText}
+                        try {
+                            const parsed = JSON.parse(decryptedText);
+                            if (parsed && parsed.type === 'image') {
+                                decryptedMessage = { ...message, imagePayload: parsed, text: '', imagePayloadNonce: message.nonce }
+                            } else {
+                                decryptedMessage = { ...message, text: decryptedText }
+                            }
+                        } catch {
+                            decryptedMessage = { ...message, text: decryptedText }
+                        }
                     } catch (error) {
                         console.error("Failed to decrypt message", error);
                         decryptedMessage = {...message, text: "[Unable to decrypt message]"}
@@ -186,7 +216,6 @@ const ChatContainer: FC<ChatContainerProps> = ({
         <>
             {isDecrypting ? (
                 <div className='flex-1 flex flex-col-reverse gap-4 p-4 overflow-y-auto'>
-                    {/* Message Skeleton */}
                     {[...Array(5)].map((_, i) => (
                         <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
                             <div className={`flex items-end gap-2 ${i % 2 === 0 ? 'flex-row-reverse' : ''}`}>
@@ -211,7 +240,6 @@ const ChatContainer: FC<ChatContainerProps> = ({
                 />
             )}
             
-            {/* Typing Indicator */}
             {isPartnerTyping && (
                 <div className='px-8 pb-2'>
                     <div className='inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-white/50 animate-in fade-in slide-in-from-bottom-2 duration-300'>

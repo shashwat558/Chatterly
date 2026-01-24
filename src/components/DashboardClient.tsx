@@ -39,7 +39,6 @@ const DashboardClient = ({
 
   return (
     <div className="h-full w-full overflow-y-auto relative">
-      {/* Background Image */}
       <div className="absolute inset-0 -z-10">
         <Image
           src="/dashboard.jpeg"
@@ -51,7 +50,6 @@ const DashboardClient = ({
       </div>
       
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-gray-900">
             Hi, {user.name?.split(' ')[0]}
@@ -63,7 +61,6 @@ const DashboardClient = ({
           </p>
         </div>
 
-        {/* Stats Row */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-center gap-3">
@@ -102,9 +99,7 @@ const DashboardClient = ({
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Friends List */}
           <div className="lg:col-span-2 bg-white border border-gray-200 rounded-lg">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-medium text-gray-900">Recent chats</h2>
@@ -156,7 +151,6 @@ const DashboardClient = ({
             )}
           </div>
 
-          {/* Quick Actions */}
           <div className="space-y-4">
             <div className="bg-white border border-gray-200 rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3">Quick actions</h3>
