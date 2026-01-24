@@ -2,7 +2,6 @@
 
 import { SendHorizontal, X, Reply, Image as ImageIcon } from 'lucide-react';
 import React, { FC, useRef, useState, useEffect, useCallback } from 'react';
-import TextareaAutosize from 'react-textarea-autosize';
 import Button from './ui/Button';
 import axios, { get } from 'axios';
 import toast from 'react-hot-toast';
@@ -421,7 +420,7 @@ const ChatInput:FC<ChatInputProps> = ({chartPartener, chatId, sessionId, onOptim
                     <ImageIcon className='w-5 h-5' />
                  </button>
             </div>
-            <TextareaAutosize ref={textareaRef} onKeyDown={(e) => {
+            <textarea ref={textareaRef} onKeyDown={(e) => {
                 if(e.key === "Enter" && !e.shiftKey){
                     e.preventDefault()
                     sendMessage()
