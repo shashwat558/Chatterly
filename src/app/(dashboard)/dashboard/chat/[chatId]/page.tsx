@@ -9,6 +9,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import React, { FC } from 'react'
 import { VideoCameraIcon } from '@heroicons/react/24/outline';
+import StartVideoCall from '@/components/StartVideoCall';
 
 
 interface PageProps {
@@ -105,18 +106,7 @@ const page = async ({params}: {params: Promise<{chatId: string}>}) => {
               </div>
             </div>
             <div className='flex items-center gap-3'>
-              <button
-                type='button'
-                className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500 text-white text-sm font-semibold shadow-md hover:bg-sky-600 active:scale-[0.99] transition'
-                // onClick={() => {
-                //   // Placeholder action for future video call hook
-                //   console.log('Start video call')
-                // }}
-                aria-label='Start video call'
-              >
-                <VideoCameraIcon className='w-6 h-6' />
-                
-              </button>
+              <StartVideoCall />
             </div>
           </div>
       </div>
