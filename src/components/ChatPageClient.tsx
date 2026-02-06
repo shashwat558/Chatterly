@@ -32,7 +32,7 @@ const ChatPageClient = ({
 
     const presenceChannelName = toPusherKey(`presence-chat:${chatId}`)
     const presenceChannel = pusherClient.subscribe(presenceChannelName) as any
-   
+
     const handleSubscriptionSucceeded = (members: any) => {
       if (members?.members && members.members[chatPartner.id]) {
         setPartnerPresence('online')
@@ -102,7 +102,7 @@ const ChatPageClient = ({
             </div>
           </div>
           <div className='flex items-center gap-3'>
-            <StartVideoCall partnerId={chatPartner.id} partnerPresence={partnerPresence} />
+            <StartVideoCall partnerPresence={partnerPresence} partner={chatPartner} />
           </div>
         </div>
       </div>

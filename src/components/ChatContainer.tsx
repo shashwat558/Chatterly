@@ -9,8 +9,10 @@ import { toPusherKey } from '@/lib/utils'
 import { getSessionKeys, hasSessionKeys } from '@/lib/sessionKeys'
 import { getIdentityKey } from '@/lib/encryption/indexdb'
 import { toast } from 'react-hot-toast'
+import { usePeer } from '@/providers/Peer'
 import { deriveSessionKeys } from '@/lib/encryption/keys'
 import { decryptMessage } from '@/lib/encryption/messageEncryption'
+import VideoCallOverlay from './VideoCallOverlay'
 
 interface ChatContainerProps {
     initialMessages: Message[]
@@ -23,7 +25,27 @@ interface ChatContainerProps {
 }
 
 interface IncomingVideoCallData {
-    offer: any;
+    offer: RTCSessionDescriptionInit
+    callerId: string
+    callerName: string | null | undefined
+}
+
+interface VideoCallAnswerData {
+    answer: RTCSessionDescriptionInit
+}
+
+interface NegotiationOfferData {
+    offer: RTCSessionDescriptionInit
+    callerId: string
+}
+
+interface NegotiationAnswerData {
+    answer: RTCSessionDescriptionInit
+}
+
+interface IceCandidateData {
+    candidate: RTCIceCandidateInit
+    senderId: string
 }
 
 const ChatContainer: FC<ChatContainerProps> = ({
@@ -40,7 +62,123 @@ const ChatContainer: FC<ChatContainerProps> = ({
     const [isPartnerTyping, setIsPartnerTyping] = useState(false)
     const [keysReady, setKeysReady] = useState(false)
     const [isDecrypting, setIsDecrypting] = useState(true)
-    const [isImageUrl, setIsImageUrl] = useState(false);
+    const [isImageUrl, setIsImageUrl] = useState(false)
+
+    const peerContext = usePeer()
+    const createAnswer = peerContext?.createAnswer
+    const applyRemoteAnswer = peerContext?.applyRemoteAnswer
+    const addIceCandidate = peerContext?.addIceCandidate
+    const handleNegotiationOffer = peerContext?.handleNegotiationOffer
+    const applyNegotiationAnswer = peerContext?.applyNegotiationAnswer
+    const sendStream = peerContext?.sendStream
+    const startLocalStream = peerContext?.startLocalStream
+    const setCallState = peerContext?.setCallState
+    const setPartnerId = peerContext?.setPartnerId
+    const endCall = peerContext?.endCall
+    const callState = peerContext?.callState ?? 'idle'
+
+    const handleIncomingVideoCall = useCallback((data: IncomingVideoCallData) => {
+        toast.custom((t) => (
+            <div className={`max-w-sm w-full bg-white shadow-lg rounded-2xl pointer-events-auto ring-1 ring-black/5 p-4 ${t.visible ? 'animate-in fade-in slide-in-from-top-2' : 'animate-out fade-out'}`}>
+                <div className='flex items-center justify-between mb-2'>
+                    <p className='text-sm font-semibold text-slate-800'>Incoming video call</p>
+                    <button
+                        type='button'
+                        className='text-slate-400 hover:text-slate-600 text-xs'
+                        onClick={() => toast.dismiss(t.id)}
+                    >
+                        Dismiss
+                    </button>
+                </div>
+                <p className='text-sm text-slate-600 mb-3'>
+                    {data.callerName ?? 'Someone'} is calling you.
+                </p>
+                <div className='flex gap-2'>
+                    <button
+                        type='button'
+                        className='flex-1 rounded-xl bg-emerald-500 text-white text-sm font-semibold py-2 hover:bg-emerald-600'
+                        onClick={async () => {
+                            if (!createAnswer || !startLocalStream || !sendStream) {
+                                toast.error('Peer connection not ready')
+                                return
+                            }
+                            try {
+                                setPartnerId?.(data.callerId)
+                                setCallState?.('incoming')
+                                const stream = await startLocalStream()
+                                sendStream(stream)
+                                const answer = await createAnswer(data.offer)
+                                await fetch('/api/video-call/answer', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ callerId: data.callerId, answer }),
+                                })
+                                toast.dismiss(t.id)
+                            } catch (error) {
+                                console.error('Failed to accept call:', error)
+                                toast.error('Failed to accept call')
+                            }
+                        }}
+                    >
+                        Accept
+                    </button>
+                    <button
+                        type='button'
+                        className='flex-1 rounded-xl bg-slate-200 text-slate-700 text-sm font-semibold py-2 hover:bg-slate-300'
+                        onClick={() => toast.dismiss(t.id)}
+                    >
+                        Decline
+                    </button>
+                </div>
+            </div>
+        ), { duration: 30000 })
+    }, [createAnswer, startLocalStream, sendStream, setPartnerId, setCallState])
+
+    const handleVideoCallAnswer = useCallback(async (data: VideoCallAnswerData) => {
+        if (!applyRemoteAnswer) return
+        try {
+            await applyRemoteAnswer(data.answer)
+            setCallState?.('connected')
+        } catch (error) {
+            console.error('Failed to apply remote answer:', error)
+        }
+    }, [applyRemoteAnswer, setCallState])
+
+    const handleIceCandidate = useCallback(async (data: IceCandidateData) => {
+        if (!addIceCandidate) return
+        try {
+            await addIceCandidate(data.candidate)
+        } catch (error) {
+            console.error('Failed to add ICE candidate:', error)
+        }
+    }, [addIceCandidate])
+
+    const handleNegotiationOfferEvent = useCallback(async (data: NegotiationOfferData) => {
+        if (!handleNegotiationOffer) return
+        try {
+            const answer = await handleNegotiationOffer(data.offer)
+            await fetch('/api/video-call/negotiate-answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answer, partnerId: data.callerId }),
+            })
+        } catch (error) {
+            console.error('Failed to handle negotiation offer:', error)
+        }
+    }, [handleNegotiationOffer])
+
+    const handleNegotiationAnswerEvent = useCallback(async (data: NegotiationAnswerData) => {
+        if (!applyNegotiationAnswer) return
+        try {
+            await applyNegotiationAnswer(data.answer)
+        } catch (error) {
+            console.error('Failed to apply negotiation answer:', error)
+        }
+    }, [applyNegotiationAnswer])
+
+    const handleEndCallOverlay = useCallback(() => {
+        endCall?.()
+    }, [endCall])
 
     const addOptimisticMessage = useCallback((message: Message) => {
         setMessages((prev) => [{ ...message, isOptimistic: true } as Message, ...prev])
@@ -204,12 +342,13 @@ const ChatContainer: FC<ChatContainerProps> = ({
             }
         }
 
-        const handleIncomingVideoCall = (data: IncomingVideoCallData) => {
-            console.log("Incoming video call from:", data);
-            toast(`Incoming video call from ${data.partnerName}!`)
-        }
+        
 
         pusherClient.bind('incoming-video-call', handleIncomingVideoCall)
+        pusherClient.bind('video-call-answer', handleVideoCallAnswer)
+        pusherClient.bind('ice-candidate', handleIceCandidate)
+        pusherClient.bind('negotiation-offer', handleNegotiationOfferEvent)
+        pusherClient.bind('negotiation-answer', handleNegotiationAnswerEvent)
         pusherClient.bind('incoming-message', messageHandler)
         pusherClient.bind('message-update', updateHandler)
         pusherClient.bind('message-status', statusHandler)
@@ -217,15 +356,28 @@ const ChatContainer: FC<ChatContainerProps> = ({
 
         return () => {
             pusherClient.unsubscribe(toPusherKey(`chat:${chatId}`))
+            pusherClient.unsubscribe(toPusherKey(`user:${sessionId}:video-call`))
             pusherClient.unbind('incoming-message', messageHandler)
             pusherClient.unbind('message-update', updateHandler)
             pusherClient.unbind('message-status', statusHandler)
             pusherClient.unbind('typing-indicator', typingHandler)
+            pusherClient.unbind('incoming-video-call', handleIncomingVideoCall)
+            pusherClient.unbind('video-call-answer', handleVideoCallAnswer)
+            pusherClient.unbind('ice-candidate', handleIceCandidate)
+            pusherClient.unbind('negotiation-offer', handleNegotiationOfferEvent)
+            pusherClient.unbind('negotiation-answer', handleNegotiationAnswerEvent)
         }
-    }, [chatId, sessionId, chatPartner.id])
+    }, [chatId, sessionId, chatPartner.id, handleIncomingVideoCall, handleVideoCallAnswer, handleIceCandidate, handleNegotiationOfferEvent, handleNegotiationAnswerEvent])
 
     return (
         <>
+            {callState !== 'idle' && (
+                <VideoCallOverlay
+                    partnerName={chatPartner.name}
+                    onEnd={handleEndCallOverlay}
+                />
+            )}
+
             {isDecrypting ? (
                 <div className='flex-1 flex flex-col-reverse gap-4 p-4 overflow-y-auto'>
                     {[...Array(5)].map((_, i) => (

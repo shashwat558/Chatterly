@@ -24,12 +24,6 @@ const FreindRequetsSidebarOption: FC<FreindRequetsSidebarOptionProps> = ({
         pusherClient.subscribe(
           toPusherKey(`user:${sessionId}:incoming_friend_requests`)
         )
-        pusherClient.subscribe(
-          'presence-video-call'          
-        )
-        const videoCallOnlineHandler  = () => {
-          return false
-        }
 
         pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`))
     
@@ -41,7 +35,6 @@ const FreindRequetsSidebarOption: FC<FreindRequetsSidebarOptionProps> = ({
           setUnseenRequestCount((prev) => prev - 1)
         }
 
-        pusherClient.bind('user-online-check', videoCallOnlineHandler)
         pusherClient.bind('incoming_friend_requests', friendRequestHandler)
         pusherClient.bind('new_friend', addedFriendHandler)
     
