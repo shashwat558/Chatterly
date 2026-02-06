@@ -19,6 +19,11 @@ interface ChatContainerProps {
     chatPartner: User
     chatId: string
     friends?: User[]
+    partnerPresence: 'online' | 'offline' | 'unknown'
+}
+
+interface IncomingVideoCallData {
+    offer: any;
 }
 
 const ChatContainer: FC<ChatContainerProps> = ({
@@ -27,7 +32,8 @@ const ChatContainer: FC<ChatContainerProps> = ({
     sessionImg,
     chatPartner,
     chatId,
-    friends = []
+    friends = [],
+    partnerPresence
 }) => {
     const [messages, setMessages] = useState<Message[]>([])
     const [replyingTo, setReplyingTo] = useState<Message | null>(null)
@@ -131,11 +137,11 @@ const ChatContainer: FC<ChatContainerProps> = ({
 
         decryptInitialMessages();
     }, [keysReady, chatId, initialMessages, sessionId])
-
     
     useEffect(() => {
         pusherClient.subscribe(toPusherKey(`chat:${chatId}`))
-
+        pusherClient.subscribe(toPusherKey(`user:${sessionId}:video-call`))
+        
 
         const messageHandler = async (message: Message) => {
             let decryptedMessage = message
@@ -198,6 +204,12 @@ const ChatContainer: FC<ChatContainerProps> = ({
             }
         }
 
+        const handleIncomingVideoCall = (data: IncomingVideoCallData) => {
+            console.log("Incoming video call from:", data);
+            toast(`Incoming video call from ${data.partnerName}!`)
+        }
+
+        pusherClient.bind('incoming-video-call', handleIncomingVideoCall)
         pusherClient.bind('incoming-message', messageHandler)
         pusherClient.bind('message-update', updateHandler)
         pusherClient.bind('message-status', statusHandler)
@@ -240,6 +252,14 @@ const ChatContainer: FC<ChatContainerProps> = ({
                 />
             )}
             
+            {partnerPresence !== 'unknown' && (
+                <div className='px-8 pb-2'>
+                    <span className={`text-xs font-medium ${partnerPresence === 'online' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                        {partnerPresence === 'online' ? 'Online' : 'Offline'}
+                    </span>
+                </div>
+            )}
+
             {isPartnerTyping && (
                 <div className='px-8 pb-2'>
                     <div className='inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-white/50 animate-in fade-in slide-in-from-bottom-2 duration-300'>

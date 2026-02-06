@@ -1,19 +1,32 @@
 "use client"
 import { VideoCameraIcon } from '@heroicons/react/24/outline'
-import React from 'react'
-import { pusherClient } from '@/lib/pusher'
 
-const StartVideoCall = ({}) => {
+import toast from 'react-hot-toast'
+import { usePeer} from '@/providers/Peer'
+
+const StartVideoCall = ({partnerPresence, partnerId}: {partnerPresence: 'online' | 'offline' | 'unknown', partnerId: string}) => {
+  const { peer, createOffer } = usePeer();
    const handleStartCall = async() => {
-     // Logic to start a video call can be added here
-     await fetch('/api/video-call/start', {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ /* any necessary data */ })
-     })
+     if(partnerPresence !== 'online'){
+       toast('Your chat partner is not online. They need to be online to start a video call.')
+       return
+     }
+     try {
+      const offer = await createOffer();
+      await fetch("/api/video-call/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ partnerId, offer }),
+      })
+     } catch (error) {
+        console.error("Error starting video call:", error);
+        toast.error('Failed to start video call. Please try again.')
+        return
+     }
      
+     toast('Video call started!')
    }
     
     

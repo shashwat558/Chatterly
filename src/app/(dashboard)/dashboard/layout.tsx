@@ -11,6 +11,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import {FC, ReactNode} from 'react';
+import { PeerProvider } from '@/providers/Peer';
 
 
 interface LayoutProps{
@@ -52,7 +53,9 @@ const Layout: FC<LayoutProps> = async ({children}) => {
         ) as User[]).length
 
 
-    return <Providers><div className='w-full flex h-screen'>
+    return <Providers>
+        <PeerProvider>
+        <div className='w-full flex h-screen'>
         
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50 to-white -z-10" />
 
@@ -140,6 +143,7 @@ const Layout: FC<LayoutProps> = async ({children}) => {
         
         </main>
         </div>
+        </PeerProvider>
     </Providers>
 }
 
