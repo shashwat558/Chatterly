@@ -3,7 +3,7 @@
 import { SendHorizontal, X, Reply, Image as ImageIcon } from 'lucide-react';
 import React, { FC, useRef, useState, useEffect, useCallback } from 'react';
 import Button from './ui/Button';
-import axios, { get } from 'axios';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 import { nanoid } from 'nanoid';
 import { allowedImageTypes, ImageMessagePayload, MAX_IMAGE_LENGTH, Message, ReplyTo } from '@/lib/validations/message';

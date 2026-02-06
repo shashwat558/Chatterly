@@ -24,6 +24,7 @@ const FreindRequetsSidebarOption: FC<FreindRequetsSidebarOptionProps> = ({
         pusherClient.subscribe(
           toPusherKey(`user:${sessionId}:incoming_friend_requests`)
         )
+
         pusherClient.subscribe(toPusherKey(`user:${sessionId}:friends`))
     
         const friendRequestHandler = () => {
@@ -33,7 +34,7 @@ const FreindRequetsSidebarOption: FC<FreindRequetsSidebarOptionProps> = ({
         const addedFriendHandler = () => {
           setUnseenRequestCount((prev) => prev - 1)
         }
-    
+
         pusherClient.bind('incoming_friend_requests', friendRequestHandler)
         pusherClient.bind('new_friend', addedFriendHandler)
     
