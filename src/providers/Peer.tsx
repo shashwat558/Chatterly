@@ -126,6 +126,29 @@ export const PeerProvider = (props: any) => {
         }
     }, [peer, stopLocalStream])
 
+    const stopScreenShare = useCallback(() => {
+        if (!peer) return
+        peer.getSenders().forEach(sender => {
+            if (sender.track?.kind === 'video') {
+                sender.track.stop()
+                peer.removeTrack(sender)
+            }
+        })
+    }, [peer])
+
+
+    const startScreenShare = useCallback(async () => {
+        if (!peer) return
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({ video: true })
+            sendStream(stream)
+            stream.getVideoTracks()[0].addEventListener('ended', () => {
+                stopScreenShare()
+            })
+        } catch (error) {
+            console.error('Screen share failed:', error)
+        }
+    }, [peer, sendStream, stopScreenShare])
     // Handle remote tracks
     useEffect(() => {
         if (!peer) return

@@ -57,16 +57,16 @@ export default function Home() {
                 <span className="text-xs font-bold tracking-wide uppercase">v2.0 is live</span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-slate-900 mb-8 max-w-5xl animate-fade-in-up delay-100 leading-tight">
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-slate-900 mb-8 max-w-5xl animate-fade-in-up leading-tight">
               Connect <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">instantly</span>. <br className="hidden md:block" />
               Chat <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">freely</span>.
             </h1>
             
-            <p className="text-lg md:text-xl text-slate-600 max-w-2xl mb-12 animate-fade-in-up delay-200 leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-600 max-w-2xl mb-12 animate-fade-in-up leading-relaxed" style={{ animationDelay: '100ms' }}>
               Experience messaging re-imagined. Crystal clear chats, secure transmission, and a vibrant community waiting for you.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-24 animate-fade-in-up delay-300 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-4 mb-24 animate-fade-in-up w-full sm:w-auto" style={{ animationDelay: '200ms' }}>
                 <Link href="/login" className="group px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 hover:shadow-2xl hover:shadow-indigo-300 hover:-translate-y-1 flex items-center justify-center gap-3">
                     Start Chatting
                     <ChatBubbleLeftRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -77,7 +77,7 @@ export default function Home() {
             </div>
 
             {/* Floating UI Elements / Graphical Representation */}
-            <div className="relative w-full max-w-6xl animate-fade-in-up delay-500 perspective-1000">
+            <div className="relative w-full max-w-6xl animate-fade-in-up perspective-1000" style={{ animationDelay: '300ms' }}>
                 <div className="relative z-10 bg-white rounded-3xl shadow-2xl shadow-indigo-100 border border-slate-200 overflow-hidden aspect-[16/9] transform rotate-x-12 hover:rotate-x-0 transition-transform duration-700 ease-out">
                     <Image 
                         src="/Hero.png" 
@@ -85,10 +85,11 @@ export default function Home() {
                         fill 
                         className="object-cover object-top"
                         priority
+                        sizes="(max-width: 1280px) 100vw, 1280px"
                     />
                     
                     {/* Simulated Notifications */}
-                    <div className="absolute top-12 left-12 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-lg border border-white/50 animate-float-slow hidden md:block">
+                    <div className="absolute top-12 left-12 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-lg border border-white/50 animate-float hidden md:block">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                                 <CheckBadgeIcon className="w-6 h-6" />
@@ -100,7 +101,7 @@ export default function Home() {
                         </div>
                     </div>
 
-                    <div className="absolute bottom-12 right-12 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-lg border border-white/50 animate-float-delayed hidden md:block">
+                    <div className="absolute bottom-12 right-12 bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-lg border border-white/50 animate-float hidden md:block" style={{ animationDelay: '2s' }}>
                         <div className="flex items-center gap-3">
                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                                 <BoltIcon className="w-6 h-6" />

@@ -45,12 +45,12 @@ const Layout: FC<LayoutProps> = async ({children}) => {
     const session = await getServerSession(authOptions)
     if(!session) notFound()
     
-    const friends = await getFriendsByUserId(session.user.id);
-
-        const unseenRequest = (await fetchRedis(
-            'smembers',
-            `user:${session.user.id}:incoming_friend_requests`
-        ) as User[]).length
+    const [friends, unseenRequest] = await Promise.all([
+        getFriendsByUserId(session.user.id),
+        fetchRedis('smembers', `user:${session.user.id}:incoming_friend_requests`).then(
+            (res) => (res as string[] || []).length
+        )
+    ]);
 
 
     return <Providers>
@@ -75,7 +75,7 @@ const Layout: FC<LayoutProps> = async ({children}) => {
 
         <Link  className='flex h-16 shrink-0 items-center gap-3 px-2 group' href={'/dashboard'}>
             <div className="p-1.5 bg-white/80 rounded-2xl group-hover:bg-white transition-all duration-300 shadow-md backdrop-blur-md border border-white/70">
-               <Image src='/logo2.png' alt='Chatterly Logo' width={56} height={56} className='h-9 w-auto' />
+               <Image src='/logo2.png' alt='Chatterly Logo' width={56} height={56} className='h-9 w-auto' priority />
             </div>
            <span className='font-bold text-xl text-white tracking-tight drop-shadow-md'>Chatterly</span>
         </Link>

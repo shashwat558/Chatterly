@@ -26,10 +26,12 @@ const page = async () => {
     return `chat:${sortedIds.join('--')}:messages`
   })
 
-  let totalMessages = 0
-  for (const chatId of chatIds) {
-    totalMessages += (await fetchRedis('zcard', chatId)) as number
-  }
+  // Fetch all message counts in parallel for significant performance boost
+  const counts = await Promise.all(
+    chatIds.map((chatId) => fetchRedis('zcard', chatId) as Promise<number>)
+  )
+  
+  const totalMessages = counts.reduce((acc, count) => acc + (count || 0), 0)
 
   return (
     <DashboardClient
